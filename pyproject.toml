@@ -1,0 +1,27 @@
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module = "i_xero"
+author = "Jason Romano"
+author-email = "aracnid@gmail.com"
+home-page = "https://github.com/aracnid/i-xero"
+classifiers = ["License :: Other/Proprietary License"]
+description-file = "README.md"
+requires-python = "~=3.9"
+requires = [
+    "aracnid-logger",
+    "flask",
+    "flask-oauthlib==0.9.6",
+    "flask-session==0.3.2",
+    "i-mongodb",
+    "pytz",
+    "pyxero",
+    "xero-python"
+]
+keywords = "i-xero,xero"
+
+[tools.flit.metadata.requires-extra]
+build = ["flit"]
+test = ["pytest"]

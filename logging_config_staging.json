@@ -1,0 +1,115 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "default": {
+            "format": "[{asctime}] {levelname:8s} in {module}/{funcName}():: {message}",
+            "style": "{"
+        },
+        "deployed": {
+            "format": "{levelname:8s} in {module}/{funcName}():: {message}",
+            "style": "{"
+        },
+        "debug": {
+            "format": "[{asctime}] {levelname:8s} in {name}//{module}/{funcName}()[{lineno}]:: {message}",
+            "style": "{"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "formatter": "default",
+            "stream": "ext://sys.stdout"
+        }
+    },
+    "loggers": {
+        "aracnid_config": {
+            "level": "WARNING"
+        },
+        "asyncio": {
+            "level": "WARNING"
+        },
+        "boto3": {
+            "level": "WARNING"
+        },
+        "botocore": {
+            "level": "WARNING"
+        },
+        "chardet": {
+            "level": "WARNING"
+        },
+        "__main__": {
+            "level": "INFO"
+        },
+        "nkdb2.cmdseq_update_orders": {
+            "level": "INFO"
+        },
+        "nkdb2.i_airtable": {
+            "level": "INFO"
+        },
+        "nkdb2.i_aws": {
+            "level": "INFO"
+        },
+        "nkdb2.i_slack": {
+            "level": "INFO"
+        },
+        "nkdb2.i_square": {
+            "level": "INFO"
+        },
+        "nkdb2.i_square2": {
+            "level": "INFO"
+        },
+        "nkdb2.i_xero": {
+            "level": "INFO"
+        },
+        "nkdb2.itemizations": {
+            "level": "INFO"
+        },
+        "nkdb2.items": {
+            "level": "INFO"
+        },
+        "nkdb2.orders": {
+            "level": "INFO"
+        },
+        "oauthlib": {
+            "level": "WARNING"
+        },
+        "requests": {
+            "level": "WARNING"
+        },
+        "requests_oauthlib": {
+            "level": "WARNING"
+        },
+        "slack": {
+            "level": "WARNING"
+        },
+        "slack_sdk": {
+            "level": "WARNING",
+            "propagate": false
+        },
+        "slack_bolt": {
+            "level": "WARNING",
+            "propagate": false
+        },
+        "squaredown.catalog": {
+            "level": "INFO"
+        },
+        "squaredown.connector": {
+            "level": "INFO"
+        },
+        "squaredown.itemizations": {
+            "level": "INFO"
+        },
+        "squaredown.orders": {
+            "level": "INFO"
+        },
+        "urllib3": {
+            "level": "WARNING"
+        }
+    },
+    "root": {
+        "level": "DEBUG",
+        "handlers": ["console"]
+    }
+}
