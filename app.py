@@ -7,6 +7,10 @@ import os
 import sys
 
 from flask import url_for, render_template, redirect, request
+from i_xero import Xero2
+from i_xero.i_flask import FlaskInterface
+from utils import jsonify, serialize_model
+
 
 # initialize logging
 # The SlackBot app doesn't handle logging in the same way.
@@ -21,10 +25,6 @@ with open(logging_path, 'rt') as file:
 formatter = os.environ.get('LOGGING_FORMATTER')
 logging_config['handlers']['console']['formatter'] = formatter
 logging.config.dictConfig(logging_config)
-
-from i_xero.i_flask import FlaskInterface
-from i_xero.i_xero2 import Xero2
-from utils import jsonify, serialize_model
 
 env_str = os.environ.get('LOG_UNHANDLED_EXCEPTIONS')
 LOG_UNHANDLED_EXCEPTIONS = env_str.lower() in ('true', 'yes') if env_str else False
