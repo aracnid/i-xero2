@@ -1,4 +1,4 @@
-from i_xero import XeroInterface
+from i_xero2 import XeroInterface
 
 def test_init_xero():
 	xero = XeroInterface()

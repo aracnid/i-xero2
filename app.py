@@ -7,8 +7,8 @@ import os
 import sys
 
 from flask import url_for, render_template, redirect, request
-from i_xero import Xero2
-from i_xero.i_flask import FlaskInterface
+from i_xero2 import Xero2
+from i_xero2.i_flask import FlaskInterface
 from utils import jsonify, serialize_model
 
 

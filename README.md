@@ -1,4 +1,4 @@
-# i-Xero
+# i-Xero2
 
 This is a standardized and customized connector to Xero.
 
@@ -17,7 +17,7 @@ This package supports the following version of Python:
 Install the latest package using pip. (We prefer pipenv.)
 
 ```
-$ pip install i-xero
+$ pip install i-xero2
 ```
 
 End with an example of getting some data out of the system or using it for a little demo
