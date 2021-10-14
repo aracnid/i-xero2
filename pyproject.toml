@@ -13,8 +13,8 @@ requires-python = "~=3.9"
 requires = [
     "aracnid-logger",
     "flask",
-    "flask-oauthlib==0.9.6",
-    "flask-session==0.3.2",
+    "flask-oauthlib",
+    "flask-session",
     "i-mongodb",
     "pytz",
     "pyxero",
