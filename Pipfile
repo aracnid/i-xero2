@@ -14,7 +14,6 @@ flask-oauthlib = "*"
 flask-session = "*"
 i-mongodb = "*"
 pytz = "*"
-pyxero = "*"
 xero-python = "*"
 
 [requires]

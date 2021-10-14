@@ -17,7 +17,6 @@ requires = [
     "flask-session",
     "i-mongodb",
     "pytz",
-    "pyxero",
     "xero-python"
 ]
 keywords = "i-xero,xero,i-xero2"
