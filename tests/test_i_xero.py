@@ -5,4 +5,4 @@ def test_init_xero():
 	assert xero
 
 	org = xero.get_organizations()[0]
-	assert org['Name'] == 'Lake Anne Brew House, LLC'
+	assert org.name == 'Demo Company (US)'
