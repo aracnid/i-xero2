@@ -15,7 +15,7 @@ from xero_python.identity import IdentityApi
 logger = Logger(__name__).get_logger()
 
 
-class Xero2:
+class XeroInterfaceUI:
     """Interface to Xero (xero-python).
 
     Environment Variables:
@@ -148,6 +148,7 @@ class Xero2:
             self.mdb.read_collection('xero_token').delete_one(
                 filter={'_id': 'token'}
             )
+    
     def store_xero_oauth2_token(self, token):
         """Stores the token.
 

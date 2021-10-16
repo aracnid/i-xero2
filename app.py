@@ -7,7 +7,7 @@ import os
 import sys
 
 from flask import url_for, render_template, redirect, request
-from i_xero2 import Xero2
+from i_xero2 import XeroInterfaceUI
 from i_xero2.i_flask import FlaskInterface
 from utils import jsonify, serialize_model
 
@@ -33,7 +33,7 @@ LOG_UNHANDLED_EXCEPTIONS = env_str.lower() in ('true', 'yes') if env_str else Fa
 flask_app = FlaskInterface(__name__).get_app()
 
 # configure xero application
-xero_app = Xero2(flask_app)
+xero_app = XeroInterfaceUI(flask_app)
 
 
 @flask_app.route("/")
