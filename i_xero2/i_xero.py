@@ -8,6 +8,7 @@ from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
 from pytz import timezone, utc
 from xero_python.accounting import AccountingApi
 from xero_python.accounting import Invoice, Account, Payment
+from xero_python.accounting import ManualJournals
 from xero_python.api_client import ApiClient
 from xero_python.api_client.configuration import Configuration
 from xero_python.api_client.oauth2 import OAuth2Token
@@ -41,6 +42,7 @@ class XeroInterface:
         # initialize instance variables
         self.unitdp = 4
         self.tenant_id = os.environ.get('XERO_TENANT_ID')
+        self.summarize_errors = False
 
         # initialize mongodb for token storage
         self.mdb = mdb
@@ -315,6 +317,160 @@ class XeroInterface:
             logger.error(f'Exception: {e}\n')
 
         return item_list
+
+    # MANUAL JOURNALS
+    def create_manual_journals(self, manual_journal_list):
+        """Creates one or more manual journals.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            manual_journal_list: List of manual journals to create.
+
+        Returns:
+            List of created ManualJournal objects.
+        """
+        try:
+            manual_journals = self.accounting_api.create_manual_journals(
+                self.tenant_id,
+                manual_journals=ManualJournals(
+                    manual_journals=manual_journal_list
+                )
+            )
+            return manual_journals.manual_journals
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def read_manual_journals(self, **kwargs):
+        """Retrieves one or more manual journals.
+
+        Scopes:
+            accounting.transactions
+            accounting.transactions.read
+
+        Args:
+            id: Identifier
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            Dictionary or list of retrieved manual journals.
+        """
+        id = kwargs.pop('id', None)
+        
+        try:
+            if id:
+                manual_journals = self.accounting_api.get_manual_journal(
+                    self.tenant_id,
+                    manual_journal_id=id
+                )
+                if len(manual_journals.manual_journals) == 1:
+                    return manual_journals.manual_journals[0]
+                else:
+                    return None
+            else:
+                manual_journals = self.accounting_api.get_manual_journals(
+                    self.tenant_id,
+                    **kwargs,
+                )
+                return manual_journals.manual_journals
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def update_manual_journals(self, manual_journal_list):
+        """Updates one or more manual journals.
+
+        (Upsert) If a manual journal does not exist it will be created.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            manual_journal_list: List of manual journals to update
+
+        Returns:
+            Dictionary or list of retrieved manual journals.
+        """
+        try:
+            manual_journals = self.accounting_api.update_or_create_manual_journals(
+                self.tenant_id,
+                manual_journals=ManualJournals(
+                    manual_journals=manual_journal_list
+                )
+            )
+            return manual_journals.manual_journals
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def delete_manual_journals(self, **kwargs):
+        """Deletes/voids one or more manual journals.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            id: Identifier
+            manual_journals: List of ManualJournal objects
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            List of deleted manual journals.
+        """
+        id = kwargs.pop('id', None)
+        manual_journals = kwargs.pop('manual_journals', None)
+
+        try:
+            if id:
+                manual_journal = self.read_manual_journals(id=id)
+                if manual_journal.status == 'DRAFT':
+                    manual_journal.status = 'DELETED'
+                elif manual_journal.status == 'POSTED':
+                    manual_journal.status = 'VOIDED'
+                manual_journals_deleted = self.update_manual_journals(
+                    manual_journal_list=[manual_journal]
+                )
+            elif manual_journals:
+                for manual_journal in manual_journals:
+                    if manual_journal.status == 'DRAFT':
+                        manual_journal.status = 'DELETED'
+                    elif manual_journal.status == 'POSTED':
+                        manual_journal.status = 'VOIDED'
+                manual_journals_deleted = self.update_manual_journals(
+                    manual_journal_list=manual_journals
+                )
+            else:
+                manual_journals = self.read_manual_journals(**kwargs)
+                if not manual_journals:
+                    return []
+
+                for manual_journal in manual_journals:
+                    if manual_journal.status == 'DRAFT':
+                        manual_journal.status = 'DELETED'
+                    elif manual_journal.status == 'POSTED':
+                        manual_journal.status = 'VOIDED'
+
+                manual_journals_deleted = self.update_manual_journals(
+                    manual_journal_list=manual_journals
+                )
+
+            return manual_journals_deleted
+
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
 
     def get_organizations(self):
         """Retrieves Xero organization details.
