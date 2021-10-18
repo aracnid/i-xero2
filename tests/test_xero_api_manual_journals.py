@@ -1,15 +1,6 @@
 """Tests Xero API ManualJournals.
-
-Implemented:
-[ ] Create one/many
-[x] Read one
-[x] Read many
-[ ] Update
-[ ] Delete one
-[ ] Delete by filter
 """
 
-from datetime import datetime, date
 from xero_python.accounting import ManualJournal
 from xero_python.accounting import ManualJournalLine
 
@@ -39,12 +30,12 @@ def test_create_manual_journals(xero):
         journal_lines=manual_journal_lines
     )
 
-    manual_journals_created = xero.create_manual_journals(
+    manual_journal_list_created = xero.create_manual_journals(
         manual_journal_list=[manual_journal]
     )
 
-    assert manual_journals_created
-    assert len(manual_journals_created) == 1
+    assert manual_journal_list_created
+    assert len(manual_journal_list_created) == 1
 
 def test_read_manual_journal(xero):
     narration = 'Coded incorrectly Office Equipment should be Computer Equipment'
@@ -83,19 +74,19 @@ def test_update_manual_journals(xero):
         narration="Bar",
         journal_lines=manual_journal_lines
     )
-    manual_journals_created = xero.create_manual_journals(
+    manual_journal_list_created = xero.create_manual_journals(
         manual_journal_list=[manual_journal]
     )
-    manual_journal = manual_journals_created[0]
+    manual_journal = manual_journal_list_created[0]
 
     # update journal
     manual_journal.narration = 'Foo'
-    manual_journals_updated = xero.update_manual_journals(
+    manual_journal_list_updated = xero.update_manual_journals(
         manual_journal_list=[manual_journal]
     )
 
     # verify
-    assert manual_journals_updated[0].narration == manual_journal.narration
+    assert manual_journal_list_updated[0].narration == manual_journal.narration
 
 def test_delete_manual_journals_by_id(xero):
     # create new manual journal
@@ -133,13 +124,13 @@ def test_delete_manual_journals_by_filter(xero):
     filter = 'Narration.StartsWith("Foobar")&&(Status=="DRAFT"||Status=="Posted")'
     sort = 'Date ASC'
 
-    manual_journals_deleted = xero.delete_manual_journals(
+    manual_journal_list_deleted = xero.delete_manual_journals(
         where=filter,
         order=sort
     )
 
-    assert manual_journals_deleted
-    assert len(manual_journals_deleted) > 0
+    assert manual_journal_list_deleted
+    assert len(manual_journal_list_deleted) > 0
 
 def test_delete_manual_journals_by_list_of_objects(xero):
     filter = 'Narration.StartsWith("Foo")&&(Status=="DRAFT"||Status=="Posted")'
@@ -150,9 +141,9 @@ def test_delete_manual_journals_by_list_of_objects(xero):
         order=sort
     )
 
-    manual_journals_deleted = xero.delete_manual_journals(
-        manual_journals=manual_journals
+    manual_journal_list_deleted = xero.delete_manual_journals(
+        manual_journal_list=manual_journals
     )
 
-    assert manual_journals_deleted
-    assert len(manual_journals_deleted) > 0
+    assert manual_journal_list_deleted
+    assert len(manual_journal_list_deleted) > 0

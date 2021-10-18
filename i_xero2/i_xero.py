@@ -7,12 +7,16 @@ from i_mongodb import MongoDBInterface
 from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
 from pytz import timezone, utc
 from xero_python.accounting import AccountingApi
-from xero_python.accounting import Invoice, Account, Payment
+from xero_python.accounting import Invoice, Invoices
+from xero_python.accounting import Account, Payment
+from xero_python.accounting import Items
 from xero_python.accounting import ManualJournals
+from xero_python.accounting import Payments, PaymentDelete
 from xero_python.api_client import ApiClient
 from xero_python.api_client.configuration import Configuration
 from xero_python.api_client.oauth2 import OAuth2Token
 from xero_python.exceptions import AccountingBadRequestException
+from xero_python.exceptions.http_status_exceptions import NotFoundException
 
 # initialize logging
 logger = Logger(__name__).get_logger()
@@ -210,113 +214,303 @@ class XeroInterface:
                 return utc.localize(dt)
         return None
 
-    def get_invoice(self, invoice_id):
-        """Retrieves a specific sales invoice or purchase bill using a unique invoice Id.
+    # INVOICES
+    def create_invoices(self, invoice_list):
+        """Creates one or more invoices.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            invoice_list: List of invoices to create.
+
+        Returns:
+            List of created Invoice objects.
+        """
+        try:
+            invoices = self.accounting_api.create_invoices(
+                self.tenant_id,
+                invoices=Invoices(invoices=invoice_list),
+                unitdp=self.unitdp
+            )
+            return invoices.invoices
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def read_invoices(self, **kwargs):
+        """Retrieves one or more invoices.
 
         Scopes:
             accounting.transactions
             accounting.transactions.read
 
         Args:
-            invoice_id: Invoice identifier.
+            id: Identifier
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
 
         Returns:
-            Dictionary of the specified invoice.
+            Dictionary or list of retrieved invoices.
         """
-        invoice = None
+        id = kwargs.pop('id', None)
         
         try:
-            api_response = self.accounting_api.get_invoice(
-                self.tenant_id,
-                unitdp=self.unitdp,
-                invoice_id=invoice_id
-            )
-            invoice = api_response.invoices[0]
+            if id:
+                invoices = self.accounting_api.get_invoice(
+                    self.tenant_id,
+                    invoice_id=id,
+                    unitdp=self.unitdp
+                )
+                if len(invoices.invoices) == 1:
+                    return invoices.invoices[0]
+                else:
+                    return None
+            else:
+                invoices = self.accounting_api.get_invoices(
+                    self.tenant_id,
+                    unitdp=self.unitdp,
+                    **kwargs,
+                )
+                return invoices.invoices
         except AccountingBadRequestException as e:
             logger.error(f'Exception: {e}\n')
 
-        return invoice
+        return []
 
-    def get_invoices(self, **kwargs):
-        """Retrieves a list of invoices that conform to the specified parameters.
+    def update_invoices(self, invoice_list):
+        """Updates one or more invoices.
+
+        (Upsert) If an invoice does not exist it will be created.
 
         Scopes:
             accounting.transactions
-            accounting.transactions.read
 
         Args:
-            if_modified_since: Invoices created/modified since this datetime.
-            where: String to specify a filter
-            order: String to specify a sort order, "<field> ASC|DESC"
-            ...
-        """
-        invoice_list = []
-        
-        try:
-            api_response = self.accounting_api.get_invoices(
-                self.tenant_id,
-                unitdp=self.unitdp,
-                **kwargs
-            )
-            invoice_list = api_response.invoices
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
-
-        return invoice_list
-
-    def get_item(self, item_id):
-        """Retrieves a specific item using a unique item Id.
-
-        Scopes:
-            accounting.settings
-            accounting.settings.read
-
-        Args:
-            item_id: Item identifier.
+            invoice_list: List of invoices to update
 
         Returns:
-            Dictionary of the specified item.
+            Dictionary or list of retrieved invoices.
         """
-        item = None
-        
         try:
-            api_response = self.accounting_api.get_item(
+            invoices = self.accounting_api.update_or_create_invoices(
                 self.tenant_id,
-                unitdp=self.unitdp,
-                item_id=item_id
+                invoices=Invoices(
+                    invoices=invoice_list
+                )
             )
-            item = api_response.items[0]
+            return invoices.invoices
         except AccountingBadRequestException as e:
             logger.error(f'Exception: {e}\n')
 
-        return item
+        return []
 
-    def get_items(self, **kwargs):
-        """Retrieves a list of items that conform to the specified parameters.
+    def delete_invoices(self, **kwargs):
+        """Deletes/voids one or more invoices.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            id: Identifier
+            invoice_list: List of Invoice objects
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            List of deleted invoices.
+        """
+        id = kwargs.pop('id', None)
+        invoice_list = kwargs.pop('invoice_list', None)
+
+        try:
+            if id:
+                invoice = self.read_invoices(id=id)
+                self.mark_invoice_deleted(invoice)
+                invoices_deleted = self.update_invoices(
+                    invoice_list=[invoice]
+                )
+            elif invoice_list:
+                for invoice in invoice_list:
+                    self.mark_invoice_deleted(invoice)
+                invoices_deleted = self.update_invoices(
+                    invoice_list=invoice_list
+                )
+            else:
+                invoice_list_read = self.read_invoices(**kwargs)
+                if not invoice_list_read:
+                    return []
+
+                for invoice in invoice_list_read:
+                    self.mark_invoice_deleted(invoice)
+
+                invoices_deleted = self.update_invoices(
+                    invoice_list=invoice_list_read
+                )
+
+            return invoices_deleted
+
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def mark_invoice_deleted(self, invoice):
+        if invoice.status == 'DRAFT':
+            invoice.status = 'DELETED'
+        elif invoice.status == 'AUTHORISED':
+            invoice.status = 'VOIDED'
+
+    # ITEMS
+    def create_items(self, item_list):
+        """Creates one or more items.
+
+        Scopes:
+            accounting.settings
+
+        Args:
+            item_list: List of items to create.
+
+        Returns:
+            List of created Item objects.
+        """
+        try:
+            items = self.accounting_api.create_items(
+                self.tenant_id,
+                items=Items(
+                    items=item_list
+                ),
+                unitdp=self.unitdp
+            )
+            return items.items
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def read_items(self, **kwargs):
+        """Retrieves one or more items.
 
         Scopes:
             accounting.settings
             accounting.settings.read
 
         Args:
-            if_modified_since: Items created/modified since this datetime.
+            id: Identifier
+            if_modified_since: Created/modified since this datetime.
             where: String to specify a filter
             order: String to specify a sort order, "<field> ASC|DESC"
             ...
+
+        Returns:
+            Dictionary or list or retrieved items.
         """
-        item_list = []
+        id = kwargs.pop('id', None)
         
         try:
-            api_response = self.accounting_api.get_items(
+            if id:
+                items = self.accounting_api.get_item(
+                    self.tenant_id,
+                    item_id=id,
+                    unitdp=self.unitdp
+                )
+                if len(items.items) == 1:
+                    return items.items[0]
+                else:
+                    return None
+            else:
+                items = self.accounting_api.get_items(
+                    self.tenant_id,
+                    unitdp=self.unitdp,
+                    **kwargs
+                )
+                return items.items
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+        except NotFoundException as e:
+            logger.error(f'Item not found: {id}')
+
+        return []
+
+    def update_items(self, item_list):
+        """Updates one or more items.
+
+        (Upsert) If a item does not exist it will be created.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            item_list: List of items to update
+
+        Returns:
+            Dictionary or list of retrieved items.
+        """
+        try:
+            items = self.accounting_api.update_or_create_items(
                 self.tenant_id,
-                unitdp=self.unitdp,
-                **kwargs,
+                items=Items(
+                    items=item_list
+                )
             )
-            item_list = api_response.items
+            return items.items
         except AccountingBadRequestException as e:
             logger.error(f'Exception: {e}\n')
 
-        return item_list
+        return []
+
+    def delete_items(self, **kwargs):
+        """Deletes/voids one or more items.
+
+        Scopes:
+            accounting.settings
+
+        Args:
+            id: Identifier
+            item_list: List of Items objects
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            List of deleted items.
+        """
+        id = kwargs.pop('id', None)
+        item_list = kwargs.pop('item_list', None)
+
+        try:
+            if id:
+                self.accounting_api.delete_item(
+                    self.tenant_id,
+                    item_id=id
+                )
+            elif item_list:
+                for item in item_list:
+                    self.accounting_api.delete_item(
+                        self.tenant_id,                        
+                        item_id=item.item_id
+                    )
+            else:
+                item_list_read = self.read_items(**kwargs)
+                if not item_list_read:
+                    return []
+
+                for item in item_list_read:
+                    self.accounting_api.delete_item(
+                        self.tenant_id,                        
+                        item_id=item.item_id
+                    )
+
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
 
     # MANUAL JOURNALS
     def create_manual_journals(self, manual_journal_list):
@@ -419,7 +613,7 @@ class XeroInterface:
 
         Args:
             id: Identifier
-            manual_journals: List of ManualJournal objects
+            manual_journal_list: List of ManualJournal objects
             if_modified_since: Created/modified since this datetime.
             where: String to specify a filter
             order: String to specify a sort order, "<field> ASC|DESC"
@@ -429,40 +623,31 @@ class XeroInterface:
             List of deleted manual journals.
         """
         id = kwargs.pop('id', None)
-        manual_journals = kwargs.pop('manual_journals', None)
+        manual_journal_list = kwargs.pop('manual_journal_list', None)
 
         try:
             if id:
                 manual_journal = self.read_manual_journals(id=id)
-                if manual_journal.status == 'DRAFT':
-                    manual_journal.status = 'DELETED'
-                elif manual_journal.status == 'POSTED':
-                    manual_journal.status = 'VOIDED'
+                self.mark_manual_journal_deleted(manual_journal)
                 manual_journals_deleted = self.update_manual_journals(
                     manual_journal_list=[manual_journal]
                 )
-            elif manual_journals:
-                for manual_journal in manual_journals:
-                    if manual_journal.status == 'DRAFT':
-                        manual_journal.status = 'DELETED'
-                    elif manual_journal.status == 'POSTED':
-                        manual_journal.status = 'VOIDED'
+            elif manual_journal_list:
+                for manual_journal in manual_journal_list:
+                    self.mark_manual_journal_deleted(manual_journal)
                 manual_journals_deleted = self.update_manual_journals(
-                    manual_journal_list=manual_journals
+                    manual_journal_list=manual_journal_list
                 )
             else:
-                manual_journals = self.read_manual_journals(**kwargs)
-                if not manual_journals:
+                manual_journal_list_read = self.read_manual_journals(**kwargs)
+                if not manual_journal_list_read:
                     return []
 
-                for manual_journal in manual_journals:
-                    if manual_journal.status == 'DRAFT':
-                        manual_journal.status = 'DELETED'
-                    elif manual_journal.status == 'POSTED':
-                        manual_journal.status = 'VOIDED'
+                for manual_journal in manual_journal_list_read:
+                    self.mark_manual_journal_deleted(manual_journal)
 
                 manual_journals_deleted = self.update_manual_journals(
-                    manual_journal_list=manual_journals
+                    manual_journal_list=manual_journal_list_read
                 )
 
             return manual_journals_deleted
@@ -472,109 +657,159 @@ class XeroInterface:
 
         return []
 
-    def get_organizations(self):
-        """Retrieves Xero organization details.
+    def mark_manual_journal_deleted(self, manual_journal):
+        if manual_journal.status == 'DRAFT':
+            manual_journal.status = 'DELETED'
+        elif manual_journal.status == 'POSTED':
+            manual_journal.status = 'VOIDED'
+
+    # ORGANIZATIONS
+    def read_organizations(self, **kwargs):
+        """Retrieves one or more manual journals.
 
         Scopes:
-            accounting.settings
-            accounting.settings.read
-
-        Args:
-            None.
-        """
-        organization_list = []
-        
-        try:
-            api_response = self.accounting_api.get_organisations(
-                self.tenant_id
-            )
-            organization_list = api_response.organisations
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
-
-        return organization_list
-
-    def get_payment(self, payment_id):
-        """Retrieves a specific payment for invoices and credit notes using a unique payment Id.
-
-        Scopes:
-            accounting.settings
-            accounting.settings.read
-
-        Args:
-            payment_id: Payment identifier.
+            accounting.transactions
+            accounting.transactions.read
 
         Returns:
-            Dictionary of the specified payment.
+            List of retrieved organizations.
         """
-        payment = None
-        
         try:
-            api_response = self.accounting_api.get_payment(
-                self.tenant_id,
-                payment_id=payment_id
+            organizations = self.accounting_api.get_organizations(
+                self.tenant_id
             )
-            payment = api_response.payments[0]
+            return organizations.organisations
         except AccountingBadRequestException as e:
             logger.error(f'Exception: {e}\n')
 
-        return payment
+        return []
 
-    def get_payments(self, **kwargs):
-        """Retrieves payments for invoices and credit notes.
+    # PAYMENTS
+    def create_payments(self, payment_list):
+        """Creates one or more payments.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            payment_list: List of payments to create.
+
+        Returns:
+            List of created Payment objects.
+        """
+        try:
+            payments = self.accounting_api.create_payments(
+                self.tenant_id,
+                payments=Payments(payments=payment_list)
+            )
+            return payments.payments
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def read_payments(self, **kwargs):
+        """Retrieves one or more payments.
 
         Scopes:
             accounting.transactions
             accounting.transactions.read
 
         Args:
-            if_modified_since: Items created/modified since this datetime.
+            id: Identifier
+            if_modified_since: Created/modified since this datetime.
             where: String to specify a filter
             order: String to specify a sort order, "<field> ASC|DESC"
             ...
+
+        Returns:
+            Dictionary or list of retrieved payments.
         """
-        payment_list = []
+        id = kwargs.pop('id', None)
         
         try:
-            api_response = self.accounting_api.get_payments(
-                self.tenant_id,
-                **kwargs,
-            )
-            payment_list = api_response.payments
+            if id:
+                payments = self.accounting_api.get_payment(
+                    self.tenant_id,
+                    payment_id=id
+                )
+                if len(payments.payments) == 1:
+                    return payments.payments[0]
+                else:
+                    return None
+            else:
+                payments = self.accounting_api.get_payments(
+                    self.tenant_id,
+                    **kwargs,
+                )
+                return payments.payments
         except AccountingBadRequestException as e:
             logger.error(f'Exception: {e}\n')
 
-        return payment_list
+        return []
 
-    def create_payment(self, invoice_id, account_id, amount):
-        """Creates a single payment for invoice or credit notes.
+    def delete_payments(self, **kwargs):
+        """Deletes/voids one or more payments.
 
         Scopes:
             accounting.transactions
 
         Args:
-        """
-        invoice = Invoice(invoice_id=invoice_id)
-        account = Account(account_id=account_id)
-        date_value = date.today()
+            id: Identifier
+            payment_list: List of Payment objects
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
 
-        payment = Payment(
-            invoice=invoice,
-            account=account,
-            amount=amount,
-            date=date_value)
-        
+        Returns:
+            List of deleted payments.
+        """
+        id = kwargs.pop('id', None)
+        payment_list = kwargs.pop('payment_list', None)
+
         try:
-            api_response = self.accounting_api.create_payment(
-                self.tenant_id,
-                payment
-            )
-            logger.debug(api_response)
+            if id:
+                payment_delete = PaymentDelete(status = "DELETED")
+                payments = self.accounting_api.delete_payment(
+                    self.tenant_id,
+                    payment_id=id,
+                    payment_delete=payment_delete
+                )
+                return payments.payments
+
+            elif payment_list:
+                payment_delete = PaymentDelete(status = "DELETED")
+                payment_list_deleted = []
+                for payment in payment_list:
+                    payments = self.accounting_api.delete_payment(
+                        self.tenant_id,                        
+                        payment_id=payment.payment_id,
+                        payment_delete=payment_delete
+                    )
+                    payment_list_deleted.append(payments.payments[0])
+                return payment_list_deleted
+
+            else:
+                payment_delete = PaymentDelete(status="DELETED")
+                payment_list_read = self.read_payments(**kwargs)
+                if not payment_list_read:
+                    return []
+
+                payment_list_deleted = []
+                for payment in payment_list_read:
+                    payments = self.accounting_api.delete_payment(
+                        self.tenant_id,                        
+                        payment_id=payment.payment_id,
+                        payment_delete=payment_delete
+                    )
+                    payment_list_deleted.append(payments.payments[0])
+                return payment_list_deleted
+
         except AccountingBadRequestException as e:
             logger.error(f'Exception: {e}\n')
 
-    def create_payments():
-        pass
+        return []
 
     def get_repeating_invoice(self, repeating_invoice_id):
         """Retrieves a specific repeating invoice using a unique repeating invoice Id.
