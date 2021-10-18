@@ -811,6 +811,48 @@ class XeroInterface:
 
         return []
 
+    # REPEATING INVOICES
+    def read_repeating_invoices(self, **kwargs):
+        """Retrieves one or more repeating invoices.
+
+        Scopes:
+            accounting.transactions
+            accounting.transactions.read
+
+        Args:
+            id: Identifier
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            Dictionary or list of retrieved repeating invoices.
+        """
+        id = kwargs.pop('id', None)
+        
+        try:
+            if id:
+                repeating_invoices = self.accounting_api.get_repeating_invoice(
+                    self.tenant_id,
+                    repeating_invoice_id=id
+                )
+                if len(repeating_invoices.repeating_invoices) == 1:
+                    return repeating_invoices.repeating_invoices[0]
+                else:
+                    return None
+            else:
+                repeating_invoices = self.accounting_api.get_repeating_invoices(
+                    self.tenant_id,
+                    **kwargs
+                )
+                return repeating_invoices.repeating_invoices
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+
     def get_repeating_invoice(self, repeating_invoice_id):
         """Retrieves a specific repeating invoice using a unique repeating invoice Id.
 
