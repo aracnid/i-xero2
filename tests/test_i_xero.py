@@ -4,5 +4,5 @@ def test_init_xero():
 	xero = XeroInterface()
 	assert xero
 
-	org = xero.get_organizations()[0]
+	org = xero.read_organizations()[0]
 	assert org.name == 'Demo Company (US)'

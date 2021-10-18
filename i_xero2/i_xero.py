@@ -675,7 +675,7 @@ class XeroInterface:
             List of retrieved organizations.
         """
         try:
-            organizations = self.accounting_api.get_organizations(
+            organizations = self.accounting_api.get_organisations(
                 self.tenant_id
             )
             return organizations.organisations

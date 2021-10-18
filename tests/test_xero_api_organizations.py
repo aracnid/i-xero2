@@ -10,7 +10,7 @@ def fixture_xero_interface():
     return XeroInterface()
 
 def test_read_organizations(xero):
-    organization_list = xero.get_organizations()
+    organization_list = xero.read_organizations()
 
     assert organization_list
     assert len(organization_list) > 0
