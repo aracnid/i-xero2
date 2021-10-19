@@ -1,6 +1,6 @@
 """Tests Xero API Invoices.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from xero_python.accounting import Contact
 from xero_python.accounting import Invoice
 from xero_python.accounting import LineItem
@@ -57,6 +57,21 @@ def test_read_invoice(xero):
 
 def test_read_invoices(xero):
     filter = 'Status=="DRAFT"'
+    sort = 'Date ASC'
+
+    invoice_list = xero.read_invoices(
+        where=filter,
+        order=sort
+    )
+
+    assert invoice_list
+    assert len(invoice_list) > 0
+
+def test_read_invoices_by_date_range(xero):
+    start = date.fromisoformat('2021-09-02')
+    end = start + timedelta(days=1)
+    filter = (f'Date>={xero.xero_date_str(start)}'
+        f'&&Date<{xero.xero_date_str(end)}')
     sort = 'Date ASC'
 
     invoice_list = xero.read_invoices(

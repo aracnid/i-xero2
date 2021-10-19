@@ -194,6 +194,24 @@ class XeroInterface:
         return scope_list
 
     @staticmethod
+    def xero_date_str(date_or_datetime):
+        """Converts a date or datetime object into a DateTime string.
+
+        Args:
+            date_or_datetime: A date or datetime object.
+        """
+        return f'DateTime({",".join([str(val) for val in date_or_datetime.timetuple()[:3]])})'
+
+    @staticmethod
+    def xero_datetime_str(date_or_datetime):
+        """Converts a date or datetime object into a DateTime string.
+
+        Args:
+            date_or_datetime: A date or datetime object.
+        """
+        return f'DateTime({",".join([str(val) for val in date_or_datetime.timetuple()[:6]])})'
+
+    @staticmethod
     def get_xero_datetime(dt):
         est = timezone('US/Eastern')
         if dt:
