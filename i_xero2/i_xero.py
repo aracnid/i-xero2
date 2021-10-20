@@ -232,6 +232,47 @@ class XeroInterface:
                 return utc.localize(dt)
         return None
 
+    # ACCOUNTS
+    def read_accounts(self, **kwargs):
+        """Retrieves one or more accounts.
+
+        Scopes:
+            accounting.settings
+            accounting.settings.read
+
+        Args:
+            id: Identifier
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            Dictionary or list or retrieved accounts.
+        """
+        id = kwargs.pop('id', None)
+        
+        try:
+            if id:
+                accounts = self.accounting_api.get_account(
+                    self.tenant_id,
+                    account_id=id
+                )
+                if len(accounts.accounts) == 1:
+                    return accounts.accounts[0]
+                else:
+                    return None
+            else:
+                accounts = self.accounting_api.get_accounts(
+                    self.tenant_id,
+                    **kwargs
+                )
+                return accounts.accounts
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
     # INVOICES
     def create_invoices(self, invoice_list):
         """Creates one or more invoices.
