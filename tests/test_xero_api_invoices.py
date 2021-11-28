@@ -69,7 +69,7 @@ def test_read_invoices(xero):
 
 def test_read_invoices_by_date_range(xero):
     start = date.fromisoformat('2021-09-02')
-    end = start + timedelta(days=1)
+    end = date.today()
     filter = (f'Date>={xero.xero_date_str(start)}'
         f'&&Date<{xero.xero_date_str(end)}')
     sort = 'Date ASC'
