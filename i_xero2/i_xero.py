@@ -12,6 +12,7 @@ from xero_python.accounting import Account, Payment
 from xero_python.accounting import Items
 from xero_python.accounting import ManualJournals
 from xero_python.accounting import Payments, PaymentDelete
+from xero_python.accounting import PurchaseOrders
 from xero_python.api_client import ApiClient
 from xero_python.api_client.configuration import Configuration
 from xero_python.api_client.oauth2 import OAuth2Token
@@ -869,6 +870,163 @@ class XeroInterface:
             logger.error(f'Exception: {e}\n')
 
         return []
+
+    # PURCHASE ORDERS
+    def create_purchase_orders(self, purchase_order_list):
+        """Creates one or more purchase_orders.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            purchase_order_list: List of purchase_orders to create.
+
+        Returns:
+            List of created Invoice objects.
+        """
+        try:
+            purchase_orders = self.accounting_api.create_purchase_orders(
+                self.tenant_id,
+                purchase_orders=PurchaseOrders(purchase_orders=purchase_order_list)
+            )
+            return purchase_orders.purchase_orders
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def read_purchase_orders(self, **kwargs):
+        """Retrieves one or more purchase_orders.
+
+        Scopes:
+            accounting.transactions
+            accounting.transactions.read
+
+        Args:
+            id: Identifier
+            if_modified_since: Created/modified since this datetime.
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            Dictionary or list of retrieved purchase_orders.
+        """
+        id = kwargs.pop('id', None)
+        number = kwargs.pop('number', None)
+        
+        try:
+            if id:
+                purchase_orders = self.accounting_api.get_purchase_order(
+                    self.tenant_id,
+                    purchase_order_id=id
+                )
+                if len(purchase_orders.purchase_orders) == 1:
+                    return purchase_orders.purchase_orders[0]
+                else:
+                    return None
+            elif number:
+                purchase_orders = self.accounting_api.get_purchase_order_by_number(
+                    self.tenant_id,
+                    purchase_order_number=number
+                )
+                if len(purchase_orders.purchase_orders) == 1:
+                    return purchase_orders.purchase_orders[0]
+                else:
+                    return None
+            else:
+                purchase_orders = self.accounting_api.get_purchase_orders(
+                    self.tenant_id,
+                    **kwargs,
+                )
+                return purchase_orders.purchase_orders
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def update_purchase_orders(self, purchase_order_list):
+        """Updates one or more purchase_orders.
+
+        (Upsert) If an purchase_order does not exist it will be created.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            purchase_order_list: List of purchase_orders to update
+
+        Returns:
+            Dictionary or list of retrieved purchase_orders.
+        """
+        try:
+            purchase_orders = self.accounting_api.update_or_create_purchase_orders(
+                self.tenant_id,
+                purchase_orders=PurchaseOrders(
+                    purchase_orders=purchase_order_list
+                )
+            )
+            return purchase_orders.purchase_orders
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def delete_purchase_orders(self, **kwargs):
+        """Deletes/voids one or more purchase_orders.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            id: Identifier
+            purchase_order_list: List of Invoice objects
+            if_modified_since: Created/modified since this datetime.
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            List of deleted purchase_orders.
+        """
+        id = kwargs.pop('id', None)
+        purchase_order_list = kwargs.pop('purchase_order_list', None)
+
+        try:
+            if id:
+                purchase_order = self.read_purchase_orders(id=id)
+                self.mark_purchase_order_deleted(purchase_order)
+                purchase_orders_deleted = self.update_purchase_orders(
+                    purchase_order_list=[purchase_order]
+                )
+            elif purchase_order_list:
+                for purchase_order in purchase_order_list:
+                    self.mark_purchase_order_deleted(purchase_order)
+                purchase_orders_deleted = self.update_purchase_orders(
+                    purchase_order_list=purchase_order_list
+                )
+            else:
+                purchase_order_list_read = self.read_purchase_orders(**kwargs)
+                if not purchase_order_list_read:
+                    return []
+
+                for purchase_order in purchase_order_list_read:
+                    self.mark_purchase_order_deleted(purchase_order)
+
+                purchase_orders_deleted = self.update_purchase_orders(
+                    purchase_order_list=purchase_order_list_read
+                )
+
+            return purchase_orders_deleted
+
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def mark_purchase_order_deleted(self, purchase_order):
+        if purchase_order.status == 'DRAFT':
+            purchase_order.status = 'DELETED'
+        elif purchase_order.status == 'AUTHORISED':
+            purchase_order.status = 'DELETED'
 
     # REPEATING INVOICES
     def read_repeating_invoices(self, **kwargs):
