@@ -17,6 +17,7 @@ from xero_python.api_client import ApiClient
 from xero_python.api_client.configuration import Configuration
 from xero_python.api_client.oauth2 import OAuth2Token
 from xero_python.exceptions import AccountingBadRequestException
+from xero_python.exceptions import NotFoundException
 from xero_python.exceptions.http_status_exceptions import NotFoundException
 
 # initialize logging
@@ -903,7 +904,8 @@ class XeroInterface:
             accounting.transactions.read
 
         Args:
-            id: Identifier
+            id: Purchase Order identifier.
+            number: Purchase Order number.
             if_modified_since: Created/modified since this datetime.
             order: String to specify a sort order, "<field> ASC|DESC"
             ...
@@ -939,6 +941,44 @@ class XeroInterface:
                     **kwargs,
                 )
                 return purchase_orders.purchase_orders
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        except NotFoundException as e:
+            logger.info(f'purchase order not found: {number}, attempting indirect method')
+            kwargs['number'] = number
+            return self.read_purchase_orders_indirect(**kwargs)
+
+        return []
+
+    def read_purchase_orders_indirect(self, **kwargs):
+        """Retrieves one or more purchase_orders.
+
+        Scopes:
+            accounting.transactions
+            accounting.transactions.read
+
+        Args:
+            number: Purchase Order number.
+            if_modified_since: Created/modified since this datetime.
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            Dictionary or list of retrieved purchase_orders.
+        """
+        number = kwargs.pop('number', None)
+        
+        try:
+            if number:
+                purchase_orders = self.accounting_api.get_purchase_orders(
+                    self.tenant_id,
+                    **kwargs,
+                )
+                for purchase_order in purchase_orders.purchase_orders:
+                    if purchase_order.purchase_order_number == number:
+                        return purchase_order
+
         except AccountingBadRequestException as e:
             logger.error(f'Exception: {e}\n')
 

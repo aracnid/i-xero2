@@ -2,8 +2,9 @@
 """
 from datetime import datetime, date, timedelta
 from xero_python.accounting import Contact
-from xero_python.accounting import PurchaseOrder
 from xero_python.accounting import LineItem
+from xero_python.accounting import PurchaseOrder
+from xero_python.exceptions import NotFoundException
 
 from i_xero2 import XeroInterface
 import pytest
@@ -53,6 +54,27 @@ def test_read_purchase_order_by_id(xero):
     assert purchase_order.purchase_order_number == purchase_order_number
 
 def test_read_purchase_order_by_number(xero):
+    purchase_order_number = 'PO-0001'
+    purchase_order_id = '818032de-c60f-4bf6-98d5-b74df380e1d2'
+    purchase_order = xero.read_purchase_orders(number=purchase_order_number)
+
+    assert purchase_order.purchase_order_id == purchase_order_id
+    assert purchase_order.purchase_order_number == purchase_order_number
+
+def test_read_purchase_order_by_number_indirect(xero):
+    purchase_order_number = 'PO-0001'
+    purchase_order_id = '818032de-c60f-4bf6-98d5-b74df380e1d2'
+    purchase_order = xero.read_purchase_orders_indirect(number=purchase_order_number)
+
+    assert purchase_order.purchase_order_id == purchase_order_id
+    assert purchase_order.purchase_order_number == purchase_order_number
+
+def test_read_purchase_order_by_number_indirect_on_exception(xero, monkeypatch):
+    # create monkeypatch
+    def mock_get_purchase_order_by_number(*args, **kwargs):
+        raise NotFoundException
+    monkeypatch.setattr(xero.accounting_api, 'get_purchase_order_by_number', mock_get_purchase_order_by_number)
+
     purchase_order_number = 'PO-0001'
     purchase_order_id = '818032de-c60f-4bf6-98d5-b74df380e1d2'
     purchase_order = xero.read_purchase_orders(number=purchase_order_number)
