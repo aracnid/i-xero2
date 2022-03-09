@@ -7,7 +7,8 @@ from i_mongodb import MongoDBInterface
 from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
 from pytz import timezone, utc
 from xero_python.accounting import AccountingApi
-from xero_python.accounting import Invoice, Invoices
+from xero_python.accounting import CreditNotes
+from xero_python.accounting import Invoices
 from xero_python.accounting import Account, Payment
 from xero_python.accounting import Items
 from xero_python.accounting import ManualJournals
@@ -274,6 +275,158 @@ class XeroInterface:
             logger.error(f'Exception: {e}\n')
 
         return []
+
+    # CREDIT NOTES
+    def create_credit_notes(self, credit_note_list):
+        """Creates one or more credit_notes.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            credit_note_list: List of credit_notes to create.
+
+        Returns:
+            List of created Invoice objects.
+        """
+        try:
+            credit_notes = self.accounting_api.create_credit_notes(
+                self.tenant_id,
+                credit_notes=CreditNotes(credit_notes=credit_note_list),
+                unitdp=self.unitdp
+            )
+            return credit_notes.credit_notes
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def read_credit_notes(self, **kwargs):
+        """Retrieves one or more credit_notes.
+
+        Scopes:
+            accounting.transactions
+            accounting.transactions.read
+
+        Args:
+            id: Identifier
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            Dictionary or list of retrieved credit_notes.
+        """
+        id = kwargs.pop('id', None)
+        
+        try:
+            if id:
+                credit_notes = self.accounting_api.get_credit_note(
+                    self.tenant_id,
+                    credit_note_id=id,
+                    unitdp=self.unitdp
+                )
+                if len(credit_notes.credit_notes) == 1:
+                    return credit_notes.credit_notes[0]
+                else:
+                    return None
+            else:
+                credit_notes = self.accounting_api.get_credit_notes(
+                    self.tenant_id,
+                    unitdp=self.unitdp,
+                    **kwargs,
+                )
+                return credit_notes.credit_notes
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def update_credit_notes(self, credit_note_list):
+        """Updates one or more credit_notes.
+
+        (Upsert) If an credit_note does not exist it will be created.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            credit_note_list: List of credit_notes to update
+
+        Returns:
+            Dictionary or list of retrieved credit_notes.
+        """
+        try:
+            credit_notes = self.accounting_api.update_or_create_credit_notes(
+                self.tenant_id,
+                credit_notes=CreditNotes(
+                    credit_notes=credit_note_list
+                )
+            )
+            return credit_notes.credit_notes
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def delete_credit_notes(self, **kwargs):
+        """Deletes/voids one or more credit_notes.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            id: Identifier
+            credit_note_list: List of Invoice objects
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            List of deleted credit_notes.
+        """
+        id = kwargs.pop('id', None)
+        credit_note_list = kwargs.pop('credit_note_list', None)
+
+        try:
+            if id:
+                credit_note = self.read_credit_notes(id=id)
+                self.mark_credit_note_deleted(credit_note)
+                credit_notes_deleted = self.update_credit_notes(
+                    credit_note_list=[credit_note]
+                )
+            elif credit_note_list:
+                for credit_note in credit_note_list:
+                    self.mark_credit_note_deleted(credit_note)
+                credit_notes_deleted = self.update_credit_notes(
+                    credit_note_list=credit_note_list
+                )
+            else:
+                credit_note_list_read = self.read_credit_notes(**kwargs)
+                if not credit_note_list_read:
+                    return []
+
+                for credit_note in credit_note_list_read:
+                    self.mark_credit_note_deleted(credit_note)
+
+                credit_notes_deleted = self.update_credit_notes(
+                    credit_note_list=credit_note_list_read
+                )
+
+            return credit_notes_deleted
+
+        except AccountingBadRequestException as e:
+            logger.error(f'Exception: {e}\n')
+
+        return []
+
+    def mark_credit_note_deleted(self, credit_note):
+        if credit_note.status == 'DRAFT':
+            credit_note.status = 'DELETED'
+        elif credit_note.status == 'AUTHORISED':
+            credit_note.status = 'VOIDED'
 
     # INVOICES
     def create_invoices(self, invoice_list):
