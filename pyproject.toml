@@ -24,3 +24,8 @@ keywords = "i-xero,xero,i-xero2"
 [tools.flit.metadata.requires-extra]
 build = ["flit"]
 test = ["pytest"]
+
+[tool.pytest.ini_options]
+addopts = "-p no:warnings"
+log_cli = true
+log_cli_level = "DEBUG"
