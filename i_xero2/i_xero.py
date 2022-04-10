@@ -1124,13 +1124,24 @@ class XeroInterface:
         
         try:
             if number:
+                page = 1
                 purchase_orders = self.accounting_api.get_purchase_orders(
                     self.tenant_id,
+                    page=page,
                     **kwargs,
                 )
-                for purchase_order in purchase_orders.purchase_orders:
-                    if purchase_order.purchase_order_number == number:
-                        return purchase_order
+                while len(purchase_orders.purchase_orders) > 0:
+                    for purchase_order in purchase_orders.purchase_orders:
+                        if purchase_order.purchase_order_number == number:
+                            return purchase_order
+
+                    # read next page
+                    page += 1
+                    purchase_orders = self.accounting_api.get_purchase_orders(
+                        self.tenant_id,
+                        page=page,
+                        **kwargs,
+                    )
 
         except AccountingBadRequestException as e:
             logger.error(f'Exception: {e}\n')
