@@ -137,6 +137,7 @@ class XeroInterface:
                 replacement=token,
                 upsert=True
             )
+
         else:
             self.mdb.read_collection('xero_token').delete_one(
                 filter={'_id': 'token'}
@@ -148,9 +149,10 @@ class XeroInterface:
         Args:
             token: Xero token.
         """
+        self.client.configuration.oauth2_token.update_token(**token)
 
         self.client.oauth2_token_saver(
-                self.store_oauth2_token
+            self.store_oauth2_token
         )(token)
 
     @staticmethod
