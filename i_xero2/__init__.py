@@ -2,6 +2,7 @@
 """
 
 # import package modules
+from i_xero2.i_xero import ExpiredCredentialsException
 from i_xero2.i_xero import XeroInterface
 from i_xero2.i_xero_ui import XeroInterfaceUI
 

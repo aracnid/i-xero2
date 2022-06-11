@@ -18,12 +18,22 @@ from xero_python.api_client import ApiClient
 from xero_python.api_client.configuration import Configuration
 from xero_python.api_client.oauth2 import OAuth2Token
 from xero_python.exceptions import AccountingBadRequestException
+from xero_python.exceptions import HTTPStatusException
 from xero_python.exceptions import NotFoundException
 from xero_python.exceptions.http_status_exceptions import NotFoundException
 
 # initialize logging
 logger = Logger(__name__).get_logger()
 
+
+class ExpiredCredentialsException(Exception):
+    """Exception: Credentials have expired.
+    """
+    def __init__(self):
+        oauth2_url = os.environ.get('XERO_OAUTH2_URL')
+        error_msg = f'NEED TO REAUTHORIZE XERO: {oauth2_url}'
+
+        self.message = error_msg
 
 class XeroInterface:
     """Interface to Xero (pyxero).
@@ -64,8 +74,9 @@ class XeroInterface:
         # set the xero client
         self.set_client()
 
-        # set the APIs
-        self.accounting_api = AccountingApi(self.client)
+        if self.client:
+            # set the APIs
+            self.accounting_api = AccountingApi(self.client)
 
         # track class instances
         XeroInterface.instances.append(self)
@@ -73,9 +84,9 @@ class XeroInterface:
 
     def set_client(self):
         token = self.get_token()
-        logger.debug(f'[setup] expires: {token["expires_at"]}')
 
         if token:
+            logger.debug(f'[setup] expires: {token["expires_at"]}')
             # self.credentials = OAuth2Credentials(
             #     client_id=self.client_id,
             #     client_secret=self.client_secret,
@@ -101,11 +112,24 @@ class XeroInterface:
             oauth2_token = self.client.configuration.oauth2_token
             # check for expired token
             if not oauth2_token.is_access_token_valid():
-                oauth2_token.refresh_access_token(self.client)
+                try:
+                    oauth2_token.refresh_access_token(self.client)
+                
+                except HTTPStatusException as err:
+                    if err.status == 400 and 'invalid_grant' in str(err.body):
+                        logger.warning('refresh_access_token: INVALID GRANT')
+                        self.store_oauth2_token(None)
+                        self.client = None
+                        self.notify_to_reauthorize()
+                        raise(ExpiredCredentialsException)
+                    
+                    else:
+                        raise(err)
 
         else:
             self.client = None
             self.notify_to_reauthorize()
+            raise(ExpiredCredentialsException)
 
     def get_oauth2_token(self):
         token = self.mdb.read_collection('xero_token').find_one(
@@ -158,7 +182,10 @@ class XeroInterface:
     @staticmethod
     def notify_to_reauthorize():
         oauth2_url = os.environ.get('XERO_OAUTH2_URL')
-        logger.error(f'NEED TO REAUTHORIZE XERO: {oauth2_url}')
+        error_msg = f'NEED TO REAUTHORIZE XERO: {oauth2_url}'
+        logger.error(error_msg)
+
+        return error_msg
 
     def get_client(self):
         return self.client
