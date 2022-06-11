@@ -9,7 +9,7 @@ author-email = "aracnid@gmail.com"
 home-page = "https://github.com/aracnid/i-xero2"
 classifiers = ["License :: Other/Proprietary License"]
 description-file = "README.md"
-requires-python = "~=3.9"
+requires-python = "~=3.10"
 requires = [
     "aracnid-logger",
     "flask",
