@@ -74,9 +74,9 @@ class XeroInterface:
         # set the xero client
         self.set_client()
 
-        if self.client:
-            # set the APIs
-            self.accounting_api = AccountingApi(self.client)
+        # if self.client:
+        #     # set the APIs
+        #     self.accounting_api = AccountingApi(self.client)
 
         # track class instances
         XeroInterface.instances.append(self)
@@ -121,15 +121,19 @@ class XeroInterface:
                         self.store_oauth2_token(None)
                         self.client = None
                         self.notify_to_reauthorize()
-                        raise(ExpiredCredentialsException)
+                        # raise(ExpiredCredentialsException)
                     
                     else:
                         raise(err)
 
+            # set the APIs
+            if self.client:
+                self.accounting_api = AccountingApi(self.client)
+
         else:
             self.client = None
             self.notify_to_reauthorize()
-            raise(ExpiredCredentialsException)
+            # raise(ExpiredCredentialsException)
 
     def get_oauth2_token(self):
         token = self.mdb.read_collection('xero_token').find_one(
