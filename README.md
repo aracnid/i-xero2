@@ -8,13 +8,13 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-This package supports the following version of Python:
+This package supports the following version of Python. It probably supports older versions, but they have not been tested.
 
-- Python 3.9 or later
+- Python 3.10 or later
 
 ### Installing
 
-Install the latest package using pip. (We prefer pipenv.)
+Install the latest package using pip.
 
 ```
 $ pip install i-xero2
@@ -38,7 +38,7 @@ TODO
 
 - **Jason Romano** - [Aracnid](https://github.com/aracnid)
 
-See also the list of [contributors](https://github.com/aracnid/i-xero/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/aracnid/i-xero2/contributors) who participated in this project.
 
 ## License
 

@@ -1,29 +1,31 @@
+[tool.poetry]
+name = "i-xero2"
+version = "2.4.2"
+description = "Custom connector to Xero"
+authors = ["Jason Romano <aracnid@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/aracnid/i-xero2"
+keywords = ["python", "xero"]
+packages = [{include = "i_xero2"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aracnid-logger = "^1.0"
+flask = "^2.1"
+flask-oauthlib = "^0.9"
+flask-session = "^0.4"
+i-mongodb = "^1.0"
+pytz = "^2022.1"
+xero-python = "^1.16"
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^2.15"
+pytest = "^7.2"
+
 [build-system]
-requires = ["flit_core >=2,<4"]
-build-backend = "flit_core.buildapi"
-
-[tool.flit.metadata]
-module = "i_xero2"
-author = "Jason Romano"
-author-email = "aracnid@gmail.com"
-home-page = "https://github.com/aracnid/i-xero2"
-classifiers = ["License :: Other/Proprietary License"]
-description-file = "README.md"
-requires-python = "~=3.10"
-requires = [
-    "aracnid-logger",
-    "flask",
-    "flask-oauthlib",
-    "flask-session",
-    "i-mongodb",
-    "pytz",
-    "xero-python"
-]
-keywords = "i-xero,xero,i-xero2"
-
-[tools.flit.metadata.requires-extra]
-build = ["flit"]
-test = ["pytest"]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 addopts = "-p no:warnings"
