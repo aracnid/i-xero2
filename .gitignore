@@ -1,10 +1,11 @@
 __pycache__*
+.coverage
 .vscode/*
 *.code-workspace
 *.egg-info/*
 *.env
 cache/
 certs/*
+cov.xml
 dist/*
-pip.log
 temp/*
