@@ -30,7 +30,7 @@ class FlaskInterface:
         self.app = Flask(name)
         self.mdb = mdb
         if not mdb:
-            self.mdb = MongoDBInterface()
+            self.mdb = MongoDBInterface().get_mdb()
 
         # config flask session
         flask_session_type = os.environ.get('FLASK_SESSION_TYPE')
@@ -38,7 +38,7 @@ class FlaskInterface:
         if flask_session_type == 'filesystem':
             self.app.config['SESSION_FILE_DIR'] = join(dirname(dirname(__file__)), 'cache')
         elif flask_session_type == 'mongodb':
-            self.app.config['SESSION_MONGODB'] = self.mdb.mongo_client
+            self.app.config['SESSION_MONGODB'] = MongoDBInterface().get_client()
             self.app.config['SESSION_MONGODB_DB'] = os.environ.get('MONGODB_DBNAME')
             self.app.config['SESSION_MONGODB_COLLECT'] = 'xero_token'
 

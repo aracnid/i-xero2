@@ -1,15 +1,16 @@
+"""Class module to interface with Xero.
+"""
 # import modules
-from datetime import date
+# pylint: disable=logging-fstring-interpolation,too-many-lines
+
 import os
 
 from aracnid_logger import Logger
 from i_mongodb import MongoDBInterface
-from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
 from pytz import timezone, utc
 from xero_python.accounting import AccountingApi
 from xero_python.accounting import CreditNotes
 from xero_python.accounting import Invoices
-from xero_python.accounting import Account, Payment
 from xero_python.accounting import Items
 from xero_python.accounting import ManualJournals
 from xero_python.accounting import Payments, PaymentDelete
@@ -19,7 +20,7 @@ from xero_python.api_client.configuration import Configuration
 from xero_python.api_client.oauth2 import OAuth2Token
 from xero_python.exceptions import AccountingBadRequestException
 from xero_python.exceptions import HTTPStatusException
-from xero_python.exceptions import NotFoundException
+# from xero_python.exceptions import NotFoundException
 from xero_python.exceptions.http_status_exceptions import NotFoundException
 
 # initialize logging
@@ -64,7 +65,7 @@ class XeroInterface:
         # initialize mongodb for token storage
         self.mdb = mdb
         if not mdb:
-            self.mdb = MongoDBInterface()
+            self.mdb = MongoDBInterface().get_mdb()
 
         # create credentials
         self.client_id = os.environ.get('XERO_CLIENT_ID')
@@ -83,6 +84,8 @@ class XeroInterface:
         logger.debug(f'XeroInterface.instances: {len(XeroInterface.instances)}')
 
     def set_client(self):
+        """Connect to Xero and set the client.
+        """
         token = self.get_token()
 
         if token:
@@ -114,7 +117,7 @@ class XeroInterface:
             if not oauth2_token.is_access_token_valid():
                 try:
                     oauth2_token.refresh_access_token(self.client)
-                
+
                 except HTTPStatusException as err:
                     if err.status == 400 and 'invalid_grant' in str(err.body):
                         logger.warning('refresh_access_token: INVALID GRANT')
@@ -122,9 +125,9 @@ class XeroInterface:
                         self.client = None
                         self.notify_to_reauthorize()
                         # raise(ExpiredCredentialsException)
-                    
+
                     else:
-                        raise(err)
+                        raise err
 
             # set the APIs
             if self.client:
@@ -136,6 +139,8 @@ class XeroInterface:
             # raise(ExpiredCredentialsException)
 
     def get_oauth2_token(self):
+        """Retrieve the token.
+        """
         token = self.mdb.read_collection('xero_token').find_one(
             filter={'_id': 'token'}
         )
@@ -148,17 +153,22 @@ class XeroInterface:
 
     def obtain_xero_oauth2_token(self):
         """Configures token persistence
-        
+
         This is the exchange point between flask-oauthlib and xero-python.
 
         Args:
-            None.        
+            None.
         """
         return self.client.oauth2_token_getter(
             self.get_oauth2_token
         )()
 
     def store_oauth2_token(self, token):
+        """Save the token.
+
+        Args:
+            token: Token.
+        """
         if token:
             self.mdb.read_collection('xero_token').replace_one(
                 filter={'_id': 'token'},
@@ -170,7 +180,7 @@ class XeroInterface:
             self.mdb.read_collection('xero_token').delete_one(
                 filter={'_id': 'token'}
             )
-    
+
     def store_xero_oauth2_token(self, token):
         """Stores the token.
 
@@ -185,6 +195,8 @@ class XeroInterface:
 
     @staticmethod
     def notify_to_reauthorize():
+        """Log the need to reauthorize Xero.
+        """
         oauth2_url = os.environ.get('XERO_OAUTH2_URL')
         error_msg = f'NEED TO REAUTHORIZE XERO: {oauth2_url}'
         logger.error(error_msg)
@@ -192,9 +204,13 @@ class XeroInterface:
         return error_msg
 
     def get_client(self):
+        """Returns the Xero client.
+        """
         return self.client
 
     def get_token(self):
+        """Retrieve the token.
+        """
         token = self.mdb.read_collection('xero_token').find_one(
             filter={'_id': 'token'}
         )
@@ -206,6 +222,11 @@ class XeroInterface:
         return token
 
     def save_token(self, token):
+        """Save the specified token.
+
+        Args:
+            token: Token.
+        """
         self.mdb.read_collection('xero_token').replace_one(
             filter={'_id': 'token'},
             replacement=token,
@@ -213,17 +234,22 @@ class XeroInterface:
         )
 
     def refresh_token(self):
-        token = self.credentials.token
-        # logger.debug(f'[refresh] token id: {token["id_token"]}')
-        logger.debug(f'[refresh] expires: {token["expires_at"]}')
+        """Not working.
+        """
+        # token = self.credentials.token
+        # # logger.debug(f'[refresh] token id: {token["id_token"]}')
+        # logger.debug(f'[refresh] expires: {token["expires_at"]}')
 
-        self.credentials.refresh()
-        new_token = self.credentials.token
-        self.save_token(new_token)
-        logger.info('Refreshed Xero token')
-        logger.debug(f'[refresh] expires: {new_token["expires_at"]}')
+        # self.credentials.refresh()
+        # new_token = self.credentials.token
+        # self.save_token(new_token)
+        # logger.info('Refreshed Xero token')
+        # logger.debug(f'[refresh] expires: {new_token["expires_at"]}')
+        logger.debug('this function is not setup')
 
     def get_scopes(self):
+        """Returns the Xero scopes as a list.
+        """
         scopes = os.environ.get('XERO_SCOPES')
         scope_list = scopes.split(',')
 
@@ -248,24 +274,34 @@ class XeroInterface:
         return f'DateTime({",".join([str(val) for val in date_or_datetime.timetuple()[:6]])})'
 
     @staticmethod
-    def get_xero_datetime(dt):
+    def get_xero_datetime(dtx):
+        """Returns the specified datetime in the local timezone.
+
+        Args:
+            dtx: Date-time.
+        """
         est = timezone('US/Eastern')
-        if dt:
-            if dt.tzinfo:
-                return dt.astimezone(est)
+        if dtx:
+            if dtx.tzinfo:
+                return dtx.astimezone(est)
             else:
-                # return utc.localize(dt).astimezone(timezone('US/Eastern'))
-                return est.localize(dt)
+                # return utc.localize(dtx).astimezone(timezone('US/Eastern'))
+                return est.localize(dtx)
         return None
 
     @staticmethod
-    def get_xero_datetime_utc(dt):
-        if dt:
-            if dt.tzinfo:
-                return dt.astimezone(utc)
+    def get_xero_datetime_utc(dtx):
+        """Returns the specified datetime in UTC.
+
+        Args:
+            dtx: Date-time.
+        """
+        if dtx:
+            if dtx.tzinfo:
+                return dtx.astimezone(utc)
             else:
-                # return utc.localize(dt).astimezone(utc)
-                return utc.localize(dt)
+                # return utc.localize(dtx).astimezone(utc)
+                return utc.localize(dtx)
         return None
 
     # ACCOUNTS
@@ -286,13 +322,13 @@ class XeroInterface:
         Returns:
             Dictionary or list or retrieved accounts.
         """
-        id = kwargs.pop('id', None)
-        
+        account_id = kwargs.pop('id', None)
+
         try:
-            if id:
+            if account_id:
                 accounts = self.accounting_api.get_account(
                     self.tenant_id,
-                    account_id=id
+                    account_id=account_id
                 )
                 if len(accounts.accounts) == 1:
                     return accounts.accounts[0]
@@ -304,8 +340,8 @@ class XeroInterface:
                     **kwargs
                 )
                 return accounts.accounts
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -329,8 +365,8 @@ class XeroInterface:
                 unitdp=self.unitdp
             )
             return credit_notes.credit_notes
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -351,13 +387,13 @@ class XeroInterface:
         Returns:
             Dictionary or list of retrieved credit_notes.
         """
-        id = kwargs.pop('id', None)
-        
+        credit_note_id = kwargs.pop('id', None)
+
         try:
-            if id:
+            if credit_note_id:
                 credit_notes = self.accounting_api.get_credit_note(
                     self.tenant_id,
-                    credit_note_id=id,
+                    credit_note_id=credit_note_id,
                     unitdp=self.unitdp
                 )
                 if len(credit_notes.credit_notes) == 1:
@@ -371,8 +407,8 @@ class XeroInterface:
                     **kwargs,
                 )
                 return credit_notes.credit_notes
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -398,8 +434,8 @@ class XeroInterface:
                 )
             )
             return credit_notes.credit_notes
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -420,12 +456,12 @@ class XeroInterface:
         Returns:
             List of deleted credit_notes.
         """
-        id = kwargs.pop('id', None)
+        credit_note_id = kwargs.pop('id', None)
         credit_note_list = kwargs.pop('credit_note_list', None)
 
         try:
-            if id:
-                credit_note = self.read_credit_notes(id=id)
+            if credit_note_id:
+                credit_note = self.read_credit_notes(id=credit_note_id)
                 self.mark_credit_note_deleted(credit_note)
                 credit_notes_deleted = self.update_credit_notes(
                     credit_note_list=[credit_note]
@@ -450,12 +486,17 @@ class XeroInterface:
 
             return credit_notes_deleted
 
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
     def mark_credit_note_deleted(self, credit_note):
+        """Set the status of the credit note to 'deleted'.
+
+        Args:
+            credit_note: Xero credit note.
+        """
         if credit_note.status == 'DRAFT':
             credit_note.status = 'DELETED'
         elif credit_note.status == 'AUTHORISED':
@@ -481,8 +522,8 @@ class XeroInterface:
                 unitdp=self.unitdp
             )
             return invoices.invoices
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -503,13 +544,13 @@ class XeroInterface:
         Returns:
             Dictionary or list of retrieved invoices.
         """
-        id = kwargs.pop('id', None)
-        
+        invoice_id = kwargs.pop('id', None)
+
         try:
-            if id:
+            if invoice_id:
                 invoices = self.accounting_api.get_invoice(
                     self.tenant_id,
-                    invoice_id=id,
+                    invoice_id=invoice_id,
                     unitdp=self.unitdp
                 )
                 if len(invoices.invoices) == 1:
@@ -523,8 +564,8 @@ class XeroInterface:
                     **kwargs,
                 )
                 return invoices.invoices
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -550,8 +591,8 @@ class XeroInterface:
                 )
             )
             return invoices.invoices
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -572,12 +613,12 @@ class XeroInterface:
         Returns:
             List of deleted invoices.
         """
-        id = kwargs.pop('id', None)
+        invoice_id = kwargs.pop('id', None)
         invoice_list = kwargs.pop('invoice_list', None)
 
         try:
-            if id:
-                invoice = self.read_invoices(id=id)
+            if invoice_id:
+                invoice = self.read_invoices(id=invoice_id)
                 self.mark_invoice_deleted(invoice)
                 invoices_deleted = self.update_invoices(
                     invoice_list=[invoice]
@@ -602,12 +643,17 @@ class XeroInterface:
 
             return invoices_deleted
 
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
     def mark_invoice_deleted(self, invoice):
+        """Set the status of the invoice to 'deleted'.
+
+        Args:
+            invoice: Xero invoice.
+        """
         if invoice.status == 'DRAFT':
             invoice.status = 'DELETED'
         elif invoice.status == 'AUTHORISED':
@@ -635,8 +681,8 @@ class XeroInterface:
                 unitdp=self.unitdp
             )
             return items.items
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -657,13 +703,13 @@ class XeroInterface:
         Returns:
             Dictionary or list or retrieved items.
         """
-        id = kwargs.pop('id', None)
-        
+        item_id = kwargs.pop('id', None)
+
         try:
-            if id:
+            if item_id:
                 items = self.accounting_api.get_item(
                     self.tenant_id,
-                    item_id=id,
+                    item_id=item_id,
                     unitdp=self.unitdp
                 )
                 if len(items.items) == 1:
@@ -677,10 +723,10 @@ class XeroInterface:
                     **kwargs
                 )
                 return items.items
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
-        except NotFoundException as e:
-            logger.error(f'Item not found: {id}')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}')
+        except NotFoundException:
+            logger.error(f'Item not found: {item_id}')
 
         return []
 
@@ -706,8 +752,8 @@ class XeroInterface:
                 )
             )
             return items.items
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -728,19 +774,19 @@ class XeroInterface:
         Returns:
             List of deleted items.
         """
-        id = kwargs.pop('id', None)
+        item_id = kwargs.pop('id', None)
         item_list = kwargs.pop('item_list', None)
 
         try:
-            if id:
+            if item_id:
                 self.accounting_api.delete_item(
                     self.tenant_id,
-                    item_id=id
+                    item_id=item_id
                 )
             elif item_list:
                 for item in item_list:
                     self.accounting_api.delete_item(
-                        self.tenant_id,                        
+                        self.tenant_id,
                         item_id=item.item_id
                     )
             else:
@@ -750,12 +796,12 @@ class XeroInterface:
 
                 for item in item_list_read:
                     self.accounting_api.delete_item(
-                        self.tenant_id,                        
+                        self.tenant_id,
                         item_id=item.item_id
                     )
 
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -780,8 +826,8 @@ class XeroInterface:
                 )
             )
             return manual_journals.manual_journals
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -802,13 +848,13 @@ class XeroInterface:
         Returns:
             Dictionary or list of retrieved manual journals.
         """
-        id = kwargs.pop('id', None)
-        
+        manual_journal_id = kwargs.pop('id', None)
+
         try:
-            if id:
+            if manual_journal_id:
                 manual_journals = self.accounting_api.get_manual_journal(
                     self.tenant_id,
-                    manual_journal_id=id
+                    manual_journal_id=manual_journal_id
                 )
                 if len(manual_journals.manual_journals) == 1:
                     return manual_journals.manual_journals[0]
@@ -820,8 +866,8 @@ class XeroInterface:
                     **kwargs,
                 )
                 return manual_journals.manual_journals
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -847,8 +893,8 @@ class XeroInterface:
                 )
             )
             return manual_journals.manual_journals
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -869,12 +915,12 @@ class XeroInterface:
         Returns:
             List of deleted manual journals.
         """
-        id = kwargs.pop('id', None)
+        manual_journal_id = kwargs.pop('id', None)
         manual_journal_list = kwargs.pop('manual_journal_list', None)
 
         try:
-            if id:
-                manual_journal = self.read_manual_journals(id=id)
+            if manual_journal_id:
+                manual_journal = self.read_manual_journals(id=manual_journal_id)
                 self.mark_manual_journal_deleted(manual_journal)
                 manual_journals_deleted = self.update_manual_journals(
                     manual_journal_list=[manual_journal]
@@ -899,20 +945,25 @@ class XeroInterface:
 
             return manual_journals_deleted
 
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
     def mark_manual_journal_deleted(self, manual_journal):
+        """Set the status of the manual journal to 'deleted'.
+
+        Args:
+            manual_journal: Xero manual journal.
+        """
         if manual_journal.status == 'DRAFT':
             manual_journal.status = 'DELETED'
         elif manual_journal.status == 'POSTED':
             manual_journal.status = 'VOIDED'
 
     # ORGANIZATIONS
-    def read_organizations(self, **kwargs):
-        """Retrieves one or more manual journals.
+    def read_organizations(self):
+        """Retrieves a list of organizations.
 
         Scopes:
             accounting.transactions
@@ -926,8 +977,8 @@ class XeroInterface:
                 self.tenant_id
             )
             return organizations.organisations
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -950,8 +1001,8 @@ class XeroInterface:
                 payments=Payments(payments=payment_list)
             )
             return payments.payments
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -972,13 +1023,13 @@ class XeroInterface:
         Returns:
             Dictionary or list of retrieved payments.
         """
-        id = kwargs.pop('id', None)
-        
+        payment_id = kwargs.pop('id', None)
+
         try:
-            if id:
+            if payment_id:
                 payments = self.accounting_api.get_payment(
                     self.tenant_id,
-                    payment_id=id
+                    payment_id=payment_id
                 )
                 if len(payments.payments) == 1:
                     return payments.payments[0]
@@ -990,8 +1041,8 @@ class XeroInterface:
                     **kwargs,
                 )
                 return payments.payments
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -1012,15 +1063,15 @@ class XeroInterface:
         Returns:
             List of deleted payments.
         """
-        id = kwargs.pop('id', None)
+        payment_id = kwargs.pop('id', None)
         payment_list = kwargs.pop('payment_list', None)
 
         try:
-            if id:
+            if payment_id:
                 payment_delete = PaymentDelete(status = "DELETED")
                 payments = self.accounting_api.delete_payment(
                     self.tenant_id,
-                    payment_id=id,
+                    payment_id=payment_id,
                     payment_delete=payment_delete
                 )
                 return payments.payments
@@ -1030,7 +1081,7 @@ class XeroInterface:
                 payment_list_deleted = []
                 for payment in payment_list:
                     payments = self.accounting_api.delete_payment(
-                        self.tenant_id,                        
+                        self.tenant_id,
                         payment_id=payment.payment_id,
                         payment_delete=payment_delete
                     )
@@ -1046,15 +1097,15 @@ class XeroInterface:
                 payment_list_deleted = []
                 for payment in payment_list_read:
                     payments = self.accounting_api.delete_payment(
-                        self.tenant_id,                        
+                        self.tenant_id,
                         payment_id=payment.payment_id,
                         payment_delete=payment_delete
                     )
                     payment_list_deleted.append(payments.payments[0])
                 return payment_list_deleted
 
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -1077,8 +1128,8 @@ class XeroInterface:
                 purchase_orders=PurchaseOrders(purchase_orders=purchase_order_list)
             )
             return purchase_orders.purchase_orders
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -1099,14 +1150,14 @@ class XeroInterface:
         Returns:
             Dictionary or list of retrieved purchase_orders.
         """
-        id = kwargs.pop('id', None)
+        purchase_order_id = kwargs.pop('id', None)
         number = kwargs.pop('number', None)
-        
+
         try:
-            if id:
+            if purchase_order_id:
                 purchase_orders = self.accounting_api.get_purchase_order(
                     self.tenant_id,
-                    purchase_order_id=id
+                    purchase_order_id=purchase_order_id
                 )
                 if len(purchase_orders.purchase_orders) == 1:
                     return purchase_orders.purchase_orders[0]
@@ -1127,10 +1178,10 @@ class XeroInterface:
                     **kwargs,
                 )
                 return purchase_orders.purchase_orders
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
-        except NotFoundException as e:
+        except NotFoundException:
             logger.info(f'purchase order not found: {number}, attempting indirect method')
             kwargs['number'] = number
             return self.read_purchase_orders_indirect(**kwargs)
@@ -1154,7 +1205,7 @@ class XeroInterface:
             Dictionary or list of retrieved purchase_orders.
         """
         number = kwargs.pop('number', None)
-        
+
         try:
             if number:
                 page = 1
@@ -1176,8 +1227,8 @@ class XeroInterface:
                         **kwargs,
                     )
 
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -1203,8 +1254,8 @@ class XeroInterface:
                 )
             )
             return purchase_orders.purchase_orders
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
@@ -1224,12 +1275,12 @@ class XeroInterface:
         Returns:
             List of deleted purchase_orders.
         """
-        id = kwargs.pop('id', None)
+        purchase_order_id = kwargs.pop('id', None)
         purchase_order_list = kwargs.pop('purchase_order_list', None)
 
         try:
-            if id:
-                purchase_order = self.read_purchase_orders(id=id)
+            if purchase_order_id:
+                purchase_order = self.read_purchase_orders(id=purchase_order_id)
                 self.mark_purchase_order_deleted(purchase_order)
                 purchase_orders_deleted = self.update_purchase_orders(
                     purchase_order_list=[purchase_order]
@@ -1254,12 +1305,17 @@ class XeroInterface:
 
             return purchase_orders_deleted
 
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []
 
     def mark_purchase_order_deleted(self, purchase_order):
+        """Set the status of the purchase order to 'deleted'.
+
+        Args:
+            purchase_order: Xero purchase order.
+        """
         if purchase_order.status == 'DRAFT':
             purchase_order.status = 'DELETED'
         elif purchase_order.status == 'AUTHORISED':
@@ -1283,13 +1339,13 @@ class XeroInterface:
         Returns:
             Dictionary or list of retrieved repeating invoices.
         """
-        id = kwargs.pop('id', None)
-        
+        repeating_invoice_id = kwargs.pop('id', None)
+
         try:
-            if id:
+            if repeating_invoice_id:
                 repeating_invoices = self.accounting_api.get_repeating_invoice(
                     self.tenant_id,
-                    repeating_invoice_id=id
+                    repeating_invoice_id=repeating_invoice_id
                 )
                 if len(repeating_invoices.repeating_invoices) == 1:
                     return repeating_invoices.repeating_invoices[0]
@@ -1301,7 +1357,7 @@ class XeroInterface:
                     **kwargs
                 )
                 return repeating_invoices.repeating_invoices
-        except AccountingBadRequestException as e:
-            logger.error(f'Exception: {e}\n')
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
 
         return []

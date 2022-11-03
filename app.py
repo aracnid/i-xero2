@@ -6,7 +6,7 @@ import logging.config
 import os
 import sys
 
-from flask import url_for, render_template, redirect, request
+from flask import url_for, render_template, redirect
 from i_xero2 import XeroInterfaceUI
 from i_xero2.i_flask import FlaskInterface
 from utils import jsonify, serialize_model
@@ -20,7 +20,7 @@ logging_filename = os.environ.get('LOGGING_CONFIG_FILE')
 command_dir = os.path.dirname(sys.argv[0])
 logging_dir = os.path.join(os.getcwd(), command_dir)
 logging_path = os.path.join(os.getcwd(), logging_filename)
-with open(logging_path, 'rt') as file:
+with open(logging_path, 'rt', encoding='UTF-8') as file:
     logging_config = json.load(file)
 formatter = os.environ.get('LOGGING_FORMATTER')
 logging_config['handlers']['console']['formatter'] = formatter
@@ -36,78 +36,92 @@ flask_app = FlaskInterface(__name__).get_app()
 xero_app = XeroInterfaceUI(flask_app)
 
 
-@flask_app.route("/")
+@flask_app.route('/')
 def index():
+    """Home URI.
+    """
     xero_access = dict(xero_app.obtain_xero_oauth2_token() or {})
     return render_template(
-        "code.html",
-        title="Home | oauth token",
+        'code.html',
+        title='Home | oauth token',
         code=jsonify(xero_access),
     )
 
-@flask_app.route("/login")
+@flask_app.route('/login')
 def login():
-    redirect_url = url_for("oauth_callback", _external=True)
+    """API route command to login.
+    """
+    redirect_url = url_for('oauth_callback', _external=True)
     response = xero_app.oauth_app.authorize(callback_uri=redirect_url)
     return response
 
-@flask_app.route("/callback")
+@flask_app.route('/callback')
 def oauth_callback():
+    """Callback URI for authorization.
+    """
     try:
         response = xero_app.oauth_app.authorized_response()
-    except Exception as e:
-        print(e)
+    except Exception as err:
+        print(err)
         raise
     # todo validate state value
-    if response is None or response.get("access_token") is None:
-        return "Access denied: response=%s" % response
+    if response is None or response.get('access_token') is None:
+        return f'Access denied: response={response}'
     xero_app.store_xero_oauth2_token(response)
-    return redirect(url_for("index", _external=True))
+    return redirect(url_for('index', _external=True))
 
 
-@flask_app.route("/logout")
+@flask_app.route('/logout')
 def logout():
+    """API route command to logout.
+    """
     xero_app.store_xero_oauth2_token(None)
-    return redirect(url_for("index", _external=True))
+    return redirect(url_for('index', _external=True))
 
 
-@flask_app.route("/refresh-token")
+@flask_app.route('/refresh-token')
 def refresh_token():
+    """API route command to refresh the token.
+    """
     xero_token = xero_app.obtain_xero_oauth2_token()
     new_token = xero_app.refresh_token()
 
     return render_template(
-        "code.html",
-        title="Xero OAuth2 token",
-        code=jsonify({"Old Token": xero_token, "New token": new_token}),
-        sub_title="token refreshed",
+        'code.html',
+        title='Xero OAuth2 token',
+        code=jsonify({'Old Token': xero_token, 'New token': new_token}),
+        sub_title='token refreshed',
     )
 
-@flask_app.route("/tenants")
+@flask_app.route('/tenants')
 def tenants():
+    """Returns a list of tenants as HTML.
+    """
     available_tenants = xero_app.get_tenants()
 
     if available_tenants is None:
-        return redirect(url_for("login", _external=True))
+        return redirect(url_for('login', _external=True))
 
     return render_template(
-        "code.html",
-        title="Xero Tenants",
+        'code.html',
+        title='Xero Tenants',
         code=jsonify(available_tenants),
     )
-    
-@flask_app.route("/invoices")
+
+@flask_app.route('/invoices')
 def get_invoices():
+    """Returns a list of invoices as HTML.
+    """
     invoices = xero_app.get_invoices()
 
     if invoices is None:
-        return redirect(url_for("login", _external=True))
+        return redirect(url_for('login', _external=True))
 
     code = serialize_model(invoices)
-    sub_title = "Total invoices found: {}".format(len(invoices.invoices))
+    sub_title = f'Total invoices found: {len(invoices.invoices)}'
 
     return render_template(
-        "code.html", title="Invoices", code=code, sub_title=sub_title
+        'code.html', title='Invoices', code=code, sub_title=sub_title
     )
 
 

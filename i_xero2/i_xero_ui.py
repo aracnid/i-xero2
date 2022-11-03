@@ -42,8 +42,9 @@ class XeroInterfaceUI:
         # initialize mongodb for token storage
         self.mdb = mdb
         if not mdb:
-            self.mdb = MongoDBInterface()
+            self.mdb = MongoDBInterface().get_mdb()
 
+    @staticmethod
     def xero_token_required(function):
         """Decorator function to ensure obtain xero token.
         """
@@ -99,7 +100,7 @@ class XeroInterfaceUI:
             Configuration(
                 debug=self.flask_app.config["DEBUG"],
                 oauth2_token=OAuth2Token(
-                    client_id=self.flask_app.config["CLIENT_ID"], 
+                    client_id=self.flask_app.config["CLIENT_ID"],
                     client_secret=self.flask_app.config["CLIENT_SECRET"]
                 ),
             ),
@@ -113,6 +114,8 @@ class XeroInterfaceUI:
         return xero_api_client
 
     def get_oauth2_token(self):
+        """Returns the token.
+        """
         token = self.mdb.read_collection('xero_token').find_one(
             filter={'_id': 'token'}
         )
@@ -125,11 +128,11 @@ class XeroInterfaceUI:
 
     def obtain_xero_oauth2_token(self):
         """Configures token persistence
-        
+
         This is the exchange point between flask-oauthlib and xero-python.
 
         Args:
-            None.        
+            None.
         """
         return self.oauth_app.tokengetter(
             self.client.oauth2_token_getter(
@@ -138,6 +141,8 @@ class XeroInterfaceUI:
         )()
 
     def store_oauth2_token(self, token):
+        """Save the token.
+        """
         if token:
             self.mdb.read_collection('xero_token').replace_one(
                 filter={'_id': 'token'},
@@ -148,7 +153,7 @@ class XeroInterfaceUI:
             self.mdb.read_collection('xero_token').delete_one(
                 filter={'_id': 'token'}
             )
-    
+
     def store_xero_oauth2_token(self, token):
         """Stores the token.
 
@@ -202,7 +207,7 @@ class XeroInterfaceUI:
             if connection.tenant_type == "ORGANISATION":
                 self.tenant_id = connection.tenant_id
                 return self.tenant_id
-        
+
     @xero_token_required
     def get_invoices(self):
         """Retrieves invoices from Xero api.
