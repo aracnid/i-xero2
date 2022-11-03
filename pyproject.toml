@@ -15,7 +15,7 @@ aracnid-logger = "^1.0"
 flask = "^2.1"
 flask-oauthlib = "^0.9"
 flask-session = "^0.4"
-i-mongodb = "^1.0"
+i-mongodb = "^2.0"
 pytz = "^2022.1"
 xero-python = "^1.16"
 

@@ -164,7 +164,7 @@ Flask = ">=0.8"
 
 [[package]]
 name = "i-mongodb"
-version = "1.0.1"
+version = "2.0.1"
 description = "Customized connector to MongoDB"
 category = "main"
 optional = false
@@ -530,7 +530,7 @@ urllib3 = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "e7727ad55055c7bcaa013659edce3620436ab8d7c106227d0f3cee13312fca83"
+content-hash = "a1707e6c714a064f8b9336d1b9b7b895893c51c815b6e9cb0ffa13f1232e6952"
 
 [metadata.files]
 aracnid-logger = [
@@ -590,8 +590,8 @@ flask-session = [
     {file = "Flask_Session-0.4.0-py2.py3-none-any.whl", hash = "sha256:1e3f8a317005db72c831f85d884a5a9d23145f256c730d80b325a3150a22c3db"},
 ]
 i-mongodb = [
-    {file = "i_mongodb-1.0.1-py3-none-any.whl", hash = "sha256:3d45e06a55f9993ee09a245f5045c112c83fa36dcb11b65960d406e7d7143b49"},
-    {file = "i_mongodb-1.0.1.tar.gz", hash = "sha256:48fe9cb17e8a1ad1354c0a1dc3ad7310e11e578d0425bb8bdae7fbc5d49f7666"},
+    {file = "i_mongodb-2.0.1-py3-none-any.whl", hash = "sha256:2ce5a038df5838d04a4388a47800af02708fef879ae868af88e3fa9da6d255f9"},
+    {file = "i_mongodb-2.0.1.tar.gz", hash = "sha256:46430a637e16c31436a9e0805b1e291ae5dcfcb8612cc4670d76a7ffca0b14c9"},
 ]
 idna = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
