@@ -1,14 +1,14 @@
 """Tests Xero API Repeating Invoices.
 """
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
+import pytest
 from xero_python.accounting import Contact
 from xero_python.accounting import RepeatingInvoice
 from xero_python.accounting import LineItem
 from xero_python.accounting import Schedule
 
 from i_xero2 import XeroInterface
-import pytest
 
 @pytest.fixture(name='xero')
 def fixture_xero_interface():
@@ -36,7 +36,7 @@ def test_create_repeating_invoices(xero):
     schedule = Schedule(
         period=1,
         unit='WEEKLY',
-        due_date=7,        
+        due_date=7,
         due_date_type='DAYSAFTERBILLDATE',
         start_date=start_date,
         next_scheduled_date=start_date
@@ -109,7 +109,7 @@ def test_update_repeating_invoices(xero, caplog):
     schedule = Schedule(
         period=1,
         unit='WEEKLY',
-        due_date=7,        
+        due_date=7,
         due_date_type='DAYSAFTERBILLDATE',
         start_date=start_date,
         next_scheduled_date=start_date
@@ -137,9 +137,11 @@ def test_update_repeating_invoices(xero, caplog):
         repeating_invoice_list=[repeating_invoice]
     )
 
-    # verify
+    # verify: this should fail
     assert repeating_invoice_list_updated[0].reference == repeating_invoice.reference
-    # assert caplog.messages[-1].startswith('AccountingBadRequestException')
+
+    # verify: this exception should be logged
+    assert caplog.messages[-1].startswith('AccountingBadRequestException')
 
 def test_delete_repeating_invoices_by_id(xero):
     """Tests deleting repeating invoices by id.
@@ -164,7 +166,7 @@ def test_delete_repeating_invoices_by_id(xero):
     schedule = Schedule(
         period=1,
         unit='WEEKLY',
-        due_date=7,        
+        due_date=7,
         due_date_type='DAYSAFTERBILLDATE',
         start_date=start_date,
         next_scheduled_date=start_date
@@ -217,7 +219,7 @@ def test_delete_repeating_invoices_by_filter(xero):
     schedule = Schedule(
         period=1,
         unit='WEEKLY',
-        due_date=7,        
+        due_date=7,
         due_date_type='DAYSAFTERBILLDATE',
         start_date=start_date,
         next_scheduled_date=start_date
@@ -272,7 +274,7 @@ def test_delete_repeating_invoices_by_list_of_objects(xero):
     schedule = Schedule(
         period=1,
         unit='WEEKLY',
-        due_date=7,        
+        due_date=7,
         due_date_type='DAYSAFTERBILLDATE',
         start_date=start_date,
         next_scheduled_date=start_date
