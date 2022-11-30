@@ -24,11 +24,25 @@ End with an example of getting some data out of the system or using it for a lit
 
 ## Running the tests
 
-Explain how to run the automated tests for this system
+Before running the tests, you need to authorize the app with Xero and save the tenant ID in the environment.
 
-```bash
-$ python -m pytest
-```
+1. In Xero, switch to the "Demo Company".
+1. Run the app locally.
+
+    ```bash
+    $ python app.py
+    ```
+
+1. In the browser, navigate to `http://localhost:5000/`
+1. Follow the prompts to allow app to access Xero.
+1. Read tenants.
+1. Copy the `tenantId`.
+1. Save the tenant id as an environment variable named `XERO_TENANT_ID`.
+1. Run the tests.
+
+    ```bash
+    $ python -m pytest
+    ```
 
 ## Usage
 
