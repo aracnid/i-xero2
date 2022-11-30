@@ -15,6 +15,7 @@ from xero_python.accounting import Items
 from xero_python.accounting import ManualJournals
 from xero_python.accounting import Payments, PaymentDelete
 from xero_python.accounting import PurchaseOrders
+from xero_python.accounting import RepeatingInvoices
 from xero_python.api_client import ApiClient
 from xero_python.api_client.configuration import Configuration
 from xero_python.api_client.oauth2 import OAuth2Token
@@ -1322,6 +1323,29 @@ class XeroInterface:
             purchase_order.status = 'DELETED'
 
     # REPEATING INVOICES
+    def create_repeating_invoices(self, repeating_invoice_list):
+        """Creates one or more repeating invoices.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            repeating_invoice_list: List of repeating invoices to create.
+
+        Returns:
+            List of created RepeatingInvoice objects.
+        """
+        try:
+            repeating_invoices = self.accounting_api.create_repeating_invoices(
+                self.tenant_id,
+                repeating_invoices=RepeatingInvoices(repeating_invoices=repeating_invoice_list)
+            )
+            return repeating_invoices.repeating_invoices
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
+
+        return []
+
     def read_repeating_invoices(self, **kwargs):
         """Retrieves one or more repeating invoices.
 
@@ -1361,3 +1385,92 @@ class XeroInterface:
             logger.error(f'Exception: {err}\n')
 
         return []
+
+    def update_repeating_invoices(self, repeating_invoice_list):
+        """Updates one or more repeating invoices.
+
+        (Upsert) If a repeating invoice does not exist it will be created.
+
+        NOTE: The "update" method only works to set the status to DELETED.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            repeating_invoice_list: List of repeating invoices to update
+
+        Returns:
+            Dictionary or list of updated repeating invoices.
+        """
+        try:
+            repeating_invoices = self.accounting_api.update_or_create_repeating_invoices(
+                self.tenant_id,
+                repeating_invoices=RepeatingInvoices(
+                    repeating_invoices=repeating_invoice_list
+                )
+            )
+            return repeating_invoices.repeating_invoices
+        except AccountingBadRequestException as err:
+            logger.error(f'AccountingBadRequestException: {err}\n')
+
+        return []
+
+    def delete_repeating_invoices(self, **kwargs):
+        """Deletes/voids one or more repeating invoices.
+
+        Scopes:
+            accounting.transactions
+
+        Args:
+            id: Identifier
+            repeating_invoice_list: List of RepeatingInvoice objects
+            if_modified_since: Created/modified since this datetime.
+            where: String to specify a filter
+            order: String to specify a sort order, "<field> ASC|DESC"
+            ...
+
+        Returns:
+            List of deleted repeating invoices.
+        """
+        repeating_invoice_id = kwargs.pop('id', None)
+        repeating_invoice_list = kwargs.pop('repeating_invoice_list', None)
+
+        try:
+            if repeating_invoice_id:
+                repeating_invoice = self.read_repeating_invoices(id=repeating_invoice_id)
+                self.mark_repeating_invoice_deleted(repeating_invoice)
+                repeating_invoices_deleted = self.update_repeating_invoices(
+                    repeating_invoice_list=[repeating_invoice]
+                )
+            elif repeating_invoice_list:
+                for repeating_invoice in repeating_invoice_list:
+                    self.mark_repeating_invoice_deleted(repeating_invoice)
+                repeating_invoices_deleted = self.update_repeating_invoices(
+                    repeating_invoice_list=repeating_invoice_list
+                )
+            else:
+                repeating_invoice_list_read = self.read_repeating_invoices(**kwargs)
+                if not repeating_invoice_list_read:
+                    return []
+
+                for repeating_invoice in repeating_invoice_list_read:
+                    self.mark_repeating_invoice_deleted(repeating_invoice)
+
+                repeating_invoices_deleted = self.update_repeating_invoices(
+                    repeating_invoice_list=repeating_invoice_list_read
+                )
+
+            return repeating_invoices_deleted
+
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
+
+        return []
+
+    def mark_repeating_invoice_deleted(self, repeating_invoice):
+        """Set the status of the repeating invoice to 'deleted'.
+
+        Args:
+            repeating_invoice: Xero repeating invoice.
+        """
+        repeating_invoice.status = 'DELETED'

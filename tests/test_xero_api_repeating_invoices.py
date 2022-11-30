@@ -1,9 +1,11 @@
 """Tests Xero API Repeating Invoices.
 """
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+
 from xero_python.accounting import Contact
-from xero_python.accounting import Invoice
+from xero_python.accounting import RepeatingInvoice
 from xero_python.accounting import LineItem
+from xero_python.accounting import Schedule
 
 from i_xero2 import XeroInterface
 import pytest
@@ -15,40 +17,51 @@ def fixture_xero_interface():
     return XeroInterface()
 
 def test_create_repeating_invoices(xero):
-    # date_value = datetime.now().astimezone()
-    # due_date_value = date_value + timedelta(days=7)
+    """Tests creating a repeating invoice.
+    """
+    contact = Contact(
+        contact_id = 'c7127731-d324-4e26-a03e-854ce9a3a269')
 
-    # contact = Contact(
-    #     contact_id = 'c7127731-d324-4e26-a03e-854ce9a3a269')
+    line_item = LineItem(
+        description = "Foobar",
+        quantity = 1.0,
+        unit_amount = 20.0,
+        account_code = '400'
+    )
+    line_items = []
+    line_items.append(line_item)
 
-    # line_item = LineItem(
-    #     description = "Foobar",
-    #     quantity = 1.0,
-    #     unit_amount = 20.0,
-    #     account_code = '400'
-    # )
-    
-    # line_items = []    
-    # line_items.append(line_item)
+    # set the schedule
+    start_date = date.today() + timedelta(days=7)
+    schedule = Schedule(
+        period=1,
+        unit='WEEKLY',
+        due_date=7,        
+        due_date_type='DAYSAFTERBILLDATE',
+        start_date=start_date,
+        next_scheduled_date=start_date
+    )
 
-    # repeating_invoice = Invoice(
-    #     type = "ACCREC",
-    #     contact = contact,
-    #     date = date_value,
-    #     due_date = due_date_value,
-    #     line_items = line_items,
-    #     reference = "test_create_repeating_invoices()",
-    #     status = "DRAFT")
+    repeating_invoice = RepeatingInvoice(
+        type="ACCREC",
+        contact=contact,
+        schedule=schedule,
+        line_items=line_items,
+        reference="test_create_repeating_invoices()",
+        status="DRAFT"
+    )
 
-    # repeating_invoice_list_created = xero.create_repeating_invoices(
-    #     repeating_invoice_list=[repeating_invoice]
-    # )
+    repeating_invoice_list_created = xero.create_repeating_invoices(
+        repeating_invoice_list=[repeating_invoice]
+    )
 
-    # assert repeating_invoice_list_created
-    # assert len(repeating_invoice_list_created) == 1
-    assert True
+    assert repeating_invoice_list_created
+    assert len(repeating_invoice_list_created) == 1
+    # assert True
 
 def test_read_repeating_invoice(xero):
+    """Tests reading repeating invoice.
+    """
     reference = 'RPT400-1'
     repeating_invoice_id = '46370783-002e-4f34-9c76-d39449795b77'
     repeating_invoice = xero.read_repeating_invoices(id=repeating_invoice_id)
@@ -57,115 +70,240 @@ def test_read_repeating_invoice(xero):
     assert repeating_invoice.reference == reference
 
 def test_read_repeating_invoices(xero):
-    filter = 'Reference=="RPT400-1"'
+    """Tests reading multiple repeating invoices.
+    """
+    find_filter = 'Reference=="RPT400-1"'
     sort = 'Date ASC'
 
     repeating_invoice_list = xero.read_repeating_invoices(
-        where=filter,
+        where=find_filter,
         order=sort
     )
 
     assert repeating_invoice_list
     assert len(repeating_invoice_list) > 0
 
-def test_update_repeating_invoices(xero):
-    # date_value = datetime.now().astimezone()
-    # due_date_value = date_value + timedelta(days=7)
-    # contact = Contact(
-    #     contact_id = 'c7127731-d324-4e26-a03e-854ce9a3a269')
-    # line_item = LineItem(
-    #     description="Foobar",
-    #     quantity=1.0,
-    #     unit_amount=20.0,
-    #     account_code='400'
-    # )   
-    # line_items = []    
-    # line_items.append(line_item)
-    # repeating_invoice = Invoice(
-    #     type="ACCREC",
-    #     contact=contact,
-    #     date=date_value,
-    #     due_date=due_date_value,
-    #     line_items=line_items,
-    #     reference="test_update_repeating_invoices(): created",
-    #     status="DRAFT")
-    # repeating_invoice_list_created = xero.create_repeating_invoices(
-    #     repeating_invoice_list=[repeating_invoice]
-    # )
-    # repeating_invoice = repeating_invoice_list_created[0]
+@pytest.mark.xfail(reason='updating repeating invoices is not implemented')
+def test_update_repeating_invoices(xero, caplog):
+    """Tests updating repeating invoices.
 
-    # # update journal
-    # repeating_invoice.reference = "test_update_repeating_invoices()"
-    # repeating_invoice_list_updated = xero.update_repeating_invoices(
-    #     repeating_invoice_list=[repeating_invoice]
-    # )
+    The "update" method is not implemented yet.
+    """
+    # region create repeating invoice
+    reference = "test_update_repeating_invoices_by_id(): created"
 
-    # # verify
-    # assert repeating_invoice_list_updated[0].reference == repeating_invoice.reference
-    assert True
+    contact = Contact(
+        contact_id = 'c7127731-d324-4e26-a03e-854ce9a3a269')
+
+    line_item = LineItem(
+        description = "Foobar",
+        quantity = 1.0,
+        unit_amount = 20.0,
+        account_code = '400'
+    )
+    line_items = []
+    line_items.append(line_item)
+
+    # set the schedule
+    start_date = date.today() + timedelta(days=7)
+    schedule = Schedule(
+        period=1,
+        unit='WEEKLY',
+        due_date=7,        
+        due_date_type='DAYSAFTERBILLDATE',
+        start_date=start_date,
+        next_scheduled_date=start_date
+    )
+
+    repeating_invoice = RepeatingInvoice(
+        type="ACCREC",
+        contact=contact,
+        schedule=schedule,
+        line_items=line_items,
+        reference=reference,
+        status="DRAFT"
+    )
+
+    repeating_invoice_list_created = xero.create_repeating_invoices(
+        repeating_invoice_list=[repeating_invoice]
+    )
+    repeating_invoice = repeating_invoice_list_created[0]
+    # endregion
+
+    # update journal
+    repeating_invoice.reference = "test_update_repeating_invoices()"
+
+    repeating_invoice_list_updated = xero.update_repeating_invoices(
+        repeating_invoice_list=[repeating_invoice]
+    )
+
+    # verify
+    assert repeating_invoice_list_updated[0].reference == repeating_invoice.reference
+    # assert caplog.messages[-1].startswith('AccountingBadRequestException')
 
 def test_delete_repeating_invoices_by_id(xero):
-    # reference = "test_delete_repeating_invoices_by_id(): created"
-    # date_value = datetime.now().astimezone()
-    # due_date_value = date_value + timedelta(days=7)
-    # contact = Contact(
-    #     contact_id = 'c7127731-d324-4e26-a03e-854ce9a3a269')
-    # line_item = LineItem(
-    #     description="Foobar",
-    #     quantity=1.0,
-    #     unit_amount=20.0,
-    #     account_code='400'
-    # )   
-    # line_items = []    
-    # line_items.append(line_item)
-    # repeating_invoice = Invoice(
-    #     type="ACCREC",
-    #     contact=contact,
-    #     date=date_value,
-    #     due_date=due_date_value,
-    #     line_items=line_items,
-    #     reference=reference,
-    #     status="DRAFT")
-    # repeating_invoice_list_created = xero.create_repeating_invoices(
-    #     repeating_invoice_list=[repeating_invoice]
-    # )
-    # repeating_invoice = repeating_invoice_list_created[0]
+    """Tests deleting repeating invoices by id.
+    """
+    # region create repeating invoice
+    reference = "test_delete_repeating_invoices_by_id(): created"
 
-    # # delete journal
-    # repeating_invoice_id = repeating_invoice.repeating_invoice_id
-    # repeating_invoice_deleted = xero.delete_repeating_invoices(
-    #     id=repeating_invoice_id
-    # )[0]
+    contact = Contact(
+        contact_id = 'c7127731-d324-4e26-a03e-854ce9a3a269')
 
-    # assert repeating_invoice_deleted.repeating_invoice_id == repeating_invoice_id
-    # assert repeating_invoice_deleted.reference == reference
-    assert True
+    line_item = LineItem(
+        description = "Foobar",
+        quantity = 1.0,
+        unit_amount = 20.0,
+        account_code = '400'
+    )
+    line_items = []
+    line_items.append(line_item)
+
+    # set the schedule
+    start_date = date.today() + timedelta(days=7)
+    schedule = Schedule(
+        period=1,
+        unit='WEEKLY',
+        due_date=7,        
+        due_date_type='DAYSAFTERBILLDATE',
+        start_date=start_date,
+        next_scheduled_date=start_date
+    )
+
+    repeating_invoice = RepeatingInvoice(
+        type="ACCREC",
+        contact=contact,
+        schedule=schedule,
+        line_items=line_items,
+        reference=reference,
+        status="DRAFT"
+    )
+
+    repeating_invoice_list_created = xero.create_repeating_invoices(
+        repeating_invoice_list=[repeating_invoice]
+    )
+    repeating_invoice = repeating_invoice_list_created[0]
+    # endregion
+
+    # delete repeating invoice
+    repeating_invoice_id = repeating_invoice.repeating_invoice_id
+    repeating_invoice_deleted = xero.delete_repeating_invoices(
+        id=repeating_invoice_id
+    )[0]
+
+    assert repeating_invoice_deleted.repeating_invoice_id == repeating_invoice_id
+    assert repeating_invoice_deleted.reference == reference
 
 def test_delete_repeating_invoices_by_filter(xero):
-#     filter = 'Reference.StartsWith("test_create")&&(Status=="DRAFT")'
-#     sort = 'Date ASC'
+    """Tests deleting repeating invoices by filter.
+    """
+    # region create repeating invoice
+    reference = "test_delete_repeating_invoices_by_filter(): created"
 
-#     repeating_invoices_deleted = xero.delete_repeating_invoices(
-#         where=filter,
-#         order=sort
-#     )
+    contact = Contact(
+        contact_id = 'c7127731-d324-4e26-a03e-854ce9a3a269')
 
-#     assert repeating_invoices_deleted
-#     assert len(repeating_invoices_deleted) > 0
+    line_item = LineItem(
+        description = "Foobar",
+        quantity = 1.0,
+        unit_amount = 20.0,
+        account_code = '400'
+    )
+    line_items = []
+    line_items.append(line_item)
 
-# def test_delete_repeating_invoices_by_list_of_objects(xero):
-#     filter = 'Reference.StartsWith("test_")&&(Status=="DRAFT")'
-#     sort = 'Date ASC'
+    # set the schedule
+    start_date = date.today() + timedelta(days=7)
+    schedule = Schedule(
+        period=1,
+        unit='WEEKLY',
+        due_date=7,        
+        due_date_type='DAYSAFTERBILLDATE',
+        start_date=start_date,
+        next_scheduled_date=start_date
+    )
 
-#     repeating_invoices = xero.read_repeating_invoices(
-#         where=filter,
-#         order=sort
-#     )
+    repeating_invoice = RepeatingInvoice(
+        type="ACCREC",
+        contact=contact,
+        schedule=schedule,
+        line_items=line_items,
+        reference=reference,
+        status="DRAFT"
+    )
 
-#     repeating_invoices_deleted = xero.delete_repeating_invoices(
-#         repeating_invoice_list=repeating_invoices
-#     )
+    repeating_invoice_list_created = xero.create_repeating_invoices(
+        repeating_invoice_list=[repeating_invoice]
+    )
+    repeating_invoice = repeating_invoice_list_created[0]
+    # endregion
 
-#     assert repeating_invoices_deleted
-#     assert len(repeating_invoices_deleted) > 0
-    assert True
+    delete_filter = 'Reference.StartsWith("test_")&&(Status=="DRAFT")'
+    sort = 'Date ASC'
+
+    repeating_invoices_deleted = xero.delete_repeating_invoices(
+        where=delete_filter,
+        order=sort
+    )
+
+    assert repeating_invoices_deleted
+    assert len(repeating_invoices_deleted) > 0
+
+def test_delete_repeating_invoices_by_list_of_objects(xero):
+    """Tests deleting repeating invoices by list.
+    """
+    # region create repeating invoice
+    reference = "test_delete_repeating_invoices_by_filter(): created"
+
+    contact = Contact(
+        contact_id = 'c7127731-d324-4e26-a03e-854ce9a3a269')
+
+    line_item = LineItem(
+        description = "Foobar",
+        quantity = 1.0,
+        unit_amount = 20.0,
+        account_code = '400'
+    )
+    line_items = []
+    line_items.append(line_item)
+
+    # set the schedule
+    start_date = date.today() + timedelta(days=7)
+    schedule = Schedule(
+        period=1,
+        unit='WEEKLY',
+        due_date=7,        
+        due_date_type='DAYSAFTERBILLDATE',
+        start_date=start_date,
+        next_scheduled_date=start_date
+    )
+
+    repeating_invoice = RepeatingInvoice(
+        type="ACCREC",
+        contact=contact,
+        schedule=schedule,
+        line_items=line_items,
+        reference=reference,
+        status="DRAFT"
+    )
+
+    repeating_invoice_list_created = xero.create_repeating_invoices(
+        repeating_invoice_list=[repeating_invoice]
+    )
+    repeating_invoice = repeating_invoice_list_created[0]
+    # endregion
+
+    delete_filter = 'Reference.StartsWith("test_")&&(Status=="DRAFT")'
+    sort = 'Date ASC'
+
+    repeating_invoices = xero.read_repeating_invoices(
+        where=delete_filter,
+        order=sort
+    )
+
+    repeating_invoices_deleted = xero.delete_repeating_invoices(
+        repeating_invoice_list=repeating_invoices
+    )
+
+    assert repeating_invoices_deleted
+    assert len(repeating_invoices_deleted) > 0

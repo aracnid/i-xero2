@@ -108,7 +108,7 @@ def test_update_invoices(xero):
     )
     invoice = invoice_list_created[0]
 
-    # update journal
+    # update invoice
     invoice.reference = "test_update_invoices()"
     invoice_list_updated = xero.update_invoices(
         invoice_list=[invoice]

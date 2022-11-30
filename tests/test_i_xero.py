@@ -24,6 +24,7 @@ def test_init_xero():
         org = xero.read_organizations()[0]
         assert org.name == 'Demo Company (US)'
 
+@pytest.mark.skip(reason='manual test')
 def test_init_xero_exception():
     """Test xero initialization, with invalid_grant.
 
