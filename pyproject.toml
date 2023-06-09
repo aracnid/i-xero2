@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "i-xero2"
-version = "2.6.0"
+version = "2.7.0"
 description = "Custom connector to Xero"
 authors = ["Jason Romano <aracnid@gmail.com>"]
 license = "MIT"
