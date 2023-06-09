@@ -3,7 +3,10 @@
 # import modules
 # pylint: disable=logging-fstring-interpolation,too-many-lines
 
+from collections import deque
+from datetime import datetime
 import os
+import time
 
 from aracnid_logger import Logger
 from i_mongodb import MongoDBInterface
@@ -80,9 +83,29 @@ class XeroInterface:
         #     # set the APIs
         #     self.accounting_api = AccountingApi(self.client)
 
+        # handle rate limit: 60 calls per minute
+        self.rate_limit_calls = 60
+        self.rate_limit_seconds = 60
+        self.call_window = deque([], maxlen=self.rate_limit_calls)
+
         # track class instances
         XeroInterface.instances.append(self)
         logger.debug(f'XeroInterface.instances: {len(XeroInterface.instances)}')
+
+    def throttle(self):
+        """Records the call time and implements a delay to comply with rate limit.
+
+        Rate limit is defined by self.rate_limit_calls and self.rate_limit_seconds.
+        """
+        # check for window length
+        if len(self.call_window) < self.rate_limit_calls:
+            self.call_window.append(datetime.now())
+            return
+
+        # check for window duration
+        if duration := datetime.now() - self.call_window[0] < self.rate_limit_seconds:
+            time.sleep(self.rate_limit_seconds - duration.total_seconds())
+            self.call_window.append(datetime.now())
 
     def set_client(self):
         """Connect to Xero and set the client.
@@ -327,6 +350,7 @@ class XeroInterface:
 
         try:
             if account_id:
+                self.throttle()
                 accounts = self.accounting_api.get_account(
                     self.tenant_id,
                     account_id=account_id
@@ -336,6 +360,7 @@ class XeroInterface:
                 else:
                     return None
             else:
+                self.throttle()
                 accounts = self.accounting_api.get_accounts(
                     self.tenant_id,
                     **kwargs
@@ -360,6 +385,7 @@ class XeroInterface:
             List of created Invoice objects.
         """
         try:
+            self.throttle()
             credit_notes = self.accounting_api.create_credit_notes(
                 self.tenant_id,
                 credit_notes=CreditNotes(credit_notes=credit_note_list),
@@ -392,6 +418,7 @@ class XeroInterface:
 
         try:
             if credit_note_id:
+                self.throttle()
                 credit_notes = self.accounting_api.get_credit_note(
                     self.tenant_id,
                     credit_note_id=credit_note_id,
@@ -402,6 +429,7 @@ class XeroInterface:
                 else:
                     return None
             else:
+                self.throttle()
                 credit_notes = self.accounting_api.get_credit_notes(
                     self.tenant_id,
                     unitdp=self.unitdp,
@@ -428,6 +456,7 @@ class XeroInterface:
             Dictionary or list of retrieved credit_notes.
         """
         try:
+            self.throttle()
             credit_notes = self.accounting_api.update_or_create_credit_notes(
                 self.tenant_id,
                 credit_notes=CreditNotes(
@@ -517,6 +546,7 @@ class XeroInterface:
             List of created Invoice objects.
         """
         try:
+            self.throttle()
             invoices = self.accounting_api.create_invoices(
                 self.tenant_id,
                 invoices=Invoices(invoices=invoice_list),
@@ -549,6 +579,7 @@ class XeroInterface:
 
         try:
             if invoice_id:
+                self.throttle()
                 invoices = self.accounting_api.get_invoice(
                     self.tenant_id,
                     invoice_id=invoice_id,
@@ -559,6 +590,7 @@ class XeroInterface:
                 else:
                     return None
             else:
+                self.throttle()
                 invoices = self.accounting_api.get_invoices(
                     self.tenant_id,
                     unitdp=self.unitdp,
@@ -585,6 +617,7 @@ class XeroInterface:
             Dictionary or list of retrieved invoices.
         """
         try:
+            self.throttle()
             invoices = self.accounting_api.update_or_create_invoices(
                 self.tenant_id,
                 invoices=Invoices(
@@ -674,6 +707,7 @@ class XeroInterface:
             List of created Item objects.
         """
         try:
+            self.throttle()
             items = self.accounting_api.create_items(
                 self.tenant_id,
                 items=Items(
@@ -708,6 +742,7 @@ class XeroInterface:
 
         try:
             if item_id:
+                self.throttle()
                 items = self.accounting_api.get_item(
                     self.tenant_id,
                     item_id=item_id,
@@ -718,6 +753,7 @@ class XeroInterface:
                 else:
                     return None
             else:
+                self.throttle()
                 items = self.accounting_api.get_items(
                     self.tenant_id,
                     unitdp=self.unitdp,
@@ -746,6 +782,7 @@ class XeroInterface:
             Dictionary or list of retrieved items.
         """
         try:
+            self.throttle()
             items = self.accounting_api.update_or_create_items(
                 self.tenant_id,
                 items=Items(
@@ -780,12 +817,14 @@ class XeroInterface:
 
         try:
             if item_id:
+                self.throttle()
                 self.accounting_api.delete_item(
                     self.tenant_id,
                     item_id=item_id
                 )
             elif item_list:
                 for item in item_list:
+                    self.throttle()
                     self.accounting_api.delete_item(
                         self.tenant_id,
                         item_id=item.item_id
@@ -796,6 +835,7 @@ class XeroInterface:
                     return []
 
                 for item in item_list_read:
+                    self.throttle()
                     self.accounting_api.delete_item(
                         self.tenant_id,
                         item_id=item.item_id
@@ -820,6 +860,7 @@ class XeroInterface:
             List of created ManualJournal objects.
         """
         try:
+            self.throttle()
             manual_journals = self.accounting_api.create_manual_journals(
                 self.tenant_id,
                 manual_journals=ManualJournals(
@@ -853,6 +894,7 @@ class XeroInterface:
 
         try:
             if manual_journal_id:
+                self.throttle()
                 manual_journals = self.accounting_api.get_manual_journal(
                     self.tenant_id,
                     manual_journal_id=manual_journal_id
@@ -862,6 +904,7 @@ class XeroInterface:
                 else:
                     return None
             else:
+                self.throttle()
                 manual_journals = self.accounting_api.get_manual_journals(
                     self.tenant_id,
                     **kwargs,
@@ -887,6 +930,7 @@ class XeroInterface:
             Dictionary or list of retrieved manual journals.
         """
         try:
+            self.throttle()
             manual_journals = self.accounting_api.update_or_create_manual_journals(
                 self.tenant_id,
                 manual_journals=ManualJournals(
@@ -974,6 +1018,7 @@ class XeroInterface:
             List of retrieved organizations.
         """
         try:
+            self.throttle()
             organizations = self.accounting_api.get_organisations(
                 self.tenant_id
             )
@@ -997,6 +1042,7 @@ class XeroInterface:
             List of created Payment objects.
         """
         try:
+            self.throttle()
             payments = self.accounting_api.create_payments(
                 self.tenant_id,
                 payments=Payments(payments=payment_list)
@@ -1028,6 +1074,7 @@ class XeroInterface:
 
         try:
             if payment_id:
+                self.throttle()
                 payments = self.accounting_api.get_payment(
                     self.tenant_id,
                     payment_id=payment_id
@@ -1037,6 +1084,7 @@ class XeroInterface:
                 else:
                     return None
             else:
+                self.throttle()
                 payments = self.accounting_api.get_payments(
                     self.tenant_id,
                     **kwargs,
@@ -1070,6 +1118,7 @@ class XeroInterface:
         try:
             if payment_id:
                 payment_delete = PaymentDelete(status = "DELETED")
+                self.throttle()
                 payments = self.accounting_api.delete_payment(
                     self.tenant_id,
                     payment_id=payment_id,
@@ -1081,6 +1130,7 @@ class XeroInterface:
                 payment_delete = PaymentDelete(status = "DELETED")
                 payment_list_deleted = []
                 for payment in payment_list:
+                    self.throttle()
                     payments = self.accounting_api.delete_payment(
                         self.tenant_id,
                         payment_id=payment.payment_id,
@@ -1097,6 +1147,7 @@ class XeroInterface:
 
                 payment_list_deleted = []
                 for payment in payment_list_read:
+                    self.throttle()
                     payments = self.accounting_api.delete_payment(
                         self.tenant_id,
                         payment_id=payment.payment_id,
@@ -1124,6 +1175,7 @@ class XeroInterface:
             List of created Invoice objects.
         """
         try:
+            self.throttle()
             purchase_orders = self.accounting_api.create_purchase_orders(
                 self.tenant_id,
                 purchase_orders=PurchaseOrders(purchase_orders=purchase_order_list)
@@ -1156,6 +1208,7 @@ class XeroInterface:
 
         try:
             if purchase_order_id:
+                self.throttle()
                 purchase_orders = self.accounting_api.get_purchase_order(
                     self.tenant_id,
                     purchase_order_id=purchase_order_id
@@ -1165,6 +1218,7 @@ class XeroInterface:
                 else:
                     return None
             elif number:
+                self.throttle()
                 purchase_orders = self.accounting_api.get_purchase_order_by_number(
                     self.tenant_id,
                     purchase_order_number=number
@@ -1174,6 +1228,7 @@ class XeroInterface:
                 else:
                     return None
             else:
+                self.throttle()
                 purchase_orders = self.accounting_api.get_purchase_orders(
                     self.tenant_id,
                     **kwargs,
@@ -1210,6 +1265,7 @@ class XeroInterface:
         try:
             if number:
                 page = 1
+                self.throttle()
                 purchase_orders = self.accounting_api.get_purchase_orders(
                     self.tenant_id,
                     page=page,
@@ -1222,6 +1278,7 @@ class XeroInterface:
 
                     # read next page
                     page += 1
+                    self.throttle()
                     purchase_orders = self.accounting_api.get_purchase_orders(
                         self.tenant_id,
                         page=page,
@@ -1248,6 +1305,7 @@ class XeroInterface:
             Dictionary or list of retrieved purchase_orders.
         """
         try:
+            self.throttle()
             purchase_orders = self.accounting_api.update_or_create_purchase_orders(
                 self.tenant_id,
                 purchase_orders=PurchaseOrders(
@@ -1336,6 +1394,7 @@ class XeroInterface:
             List of created RepeatingInvoice objects.
         """
         try:
+            self.throttle()
             repeating_invoices = self.accounting_api.create_repeating_invoices(
                 self.tenant_id,
                 repeating_invoices=RepeatingInvoices(repeating_invoices=repeating_invoice_list)
@@ -1367,6 +1426,7 @@ class XeroInterface:
 
         try:
             if repeating_invoice_id:
+                self.throttle()
                 repeating_invoices = self.accounting_api.get_repeating_invoice(
                     self.tenant_id,
                     repeating_invoice_id=repeating_invoice_id
@@ -1376,6 +1436,7 @@ class XeroInterface:
                 else:
                     return None
             else:
+                self.throttle()
                 repeating_invoices = self.accounting_api.get_repeating_invoices(
                     self.tenant_id,
                     **kwargs
@@ -1403,6 +1464,7 @@ class XeroInterface:
             Dictionary or list of updated repeating invoices.
         """
         try:
+            self.throttle()
             repeating_invoices = self.accounting_api.update_or_create_repeating_invoices(
                 self.tenant_id,
                 repeating_invoices=RepeatingInvoices(
