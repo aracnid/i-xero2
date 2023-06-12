@@ -103,8 +103,9 @@ class XeroInterface:
             return
 
         # check for window duration
-        if duration := datetime.now() - self.call_window[0] < self.rate_limit_seconds:
-            time.sleep(self.rate_limit_seconds - duration.total_seconds())
+        duration = (datetime.now() - self.call_window[0]).total_seconds()
+        if duration < self.rate_limit_seconds:
+            time.sleep(self.rate_limit_seconds - duration)
             self.call_window.append(datetime.now())
 
     def set_client(self):
