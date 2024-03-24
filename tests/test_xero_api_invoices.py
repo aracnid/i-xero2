@@ -220,3 +220,17 @@ def test_delete_invoices_by_list_of_objects(xero):
 
     assert invoices_deleted
     assert len(invoices_deleted) > 0
+
+def test_create_invoice_history(xero):
+    """Tests creating invoice history notes.
+
+    Args:
+        xero (XeroInterface): Fixture that represents a xero interface.
+    """
+    note = "123"
+    invoice_id = '2bef3661-7cd8-496c-a31d-072a4dba8a79'
+    history = xero.create_invoice_history(invoice_id=invoice_id, note=note)
+
+    assert history
+    assert isinstance(history.history_records, list)
+    assert len(history.history_records) > 0

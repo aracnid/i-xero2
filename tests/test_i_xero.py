@@ -2,6 +2,8 @@
 
 The tenant ID may change causing the authentication to fail. You can get the
 tenant ID from the login UI and save it to the environment variables.
+
+Make sure to log into the "Demo Company" in Xero before conducting these tests.
 """
 from aracnid_logger import Logger
 import pytest

@@ -13,6 +13,7 @@ from i_mongodb import MongoDBInterface
 from pytz import timezone, utc
 from xero_python.accounting import AccountingApi
 from xero_python.accounting import CreditNotes
+from xero_python.accounting import HistoryRecord, HistoryRecords
 from xero_python.accounting import Invoices
 from xero_python.accounting import Items
 from xero_python.accounting import ManualJournals
@@ -693,6 +694,25 @@ class XeroInterface:
             invoice.status = 'DELETED'
         elif invoice.status == 'AUTHORISED':
             invoice.status = 'VOIDED'
+
+    def create_invoice_history(self, invoice_id: str, note: str) -> None:
+        """Create an invoice history note.
+
+        Args:
+            invoice_id (str): Invoice identifier.
+            note (str): The note to save to the invoice history.
+        """
+        history = self.accounting_api.create_invoice_history(
+            self.tenant_id,
+            invoice_id=invoice_id,
+            history_records=HistoryRecords(
+                history_records=[
+                    HistoryRecord(details=note)
+                ]
+            ),
+        )
+
+        return history
 
     # ITEMS
     def create_items(self, item_list):
