@@ -624,7 +624,8 @@ class XeroInterface:
                 self.tenant_id,
                 invoices=Invoices(
                     invoices=invoice_list
-                )
+                ),
+                unitdp=self.unitdp
             )
             return invoices.invoices
         except AccountingBadRequestException as err:
