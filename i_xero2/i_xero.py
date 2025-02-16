@@ -310,9 +310,7 @@ class XeroInterface:
         if dtx:
             if dtx.tzinfo:
                 return dtx.astimezone(est)
-            else:
-                # return utc.localize(dtx).astimezone(timezone('US/Eastern'))
-                return est.localize(dtx)
+            return est.localize(dtx)
         return None
 
     @staticmethod
@@ -325,12 +323,10 @@ class XeroInterface:
         if dtx:
             if dtx.tzinfo:
                 return dtx.astimezone(utc)
-            else:
-                # return utc.localize(dtx).astimezone(utc)
-                return utc.localize(dtx)
+            return utc.localize(dtx)
         return None
 
-    # ACCOUNTS
+    # region ACCOUNTS
     def read_accounts(self, **kwargs):
         """Retrieves one or more accounts.
 
@@ -359,21 +355,22 @@ class XeroInterface:
                 )
                 if len(accounts.accounts) == 1:
                     return accounts.accounts[0]
-                else:
-                    return None
-            else:
-                self.throttle()
-                accounts = self.accounting_api.get_accounts(
-                    self.tenant_id,
-                    **kwargs
-                )
-                return accounts.accounts
+                return None
+
+            self.throttle()
+            accounts = self.accounting_api.get_accounts(
+                self.tenant_id,
+                **kwargs
+            )
+            return accounts.accounts
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
         return []
 
-    # CREDIT NOTES
+    # endregion
+
+    # region CREDIT_NOTES
     def create_credit_notes(self, credit_note_list):
         """Creates one or more credit_notes.
 
@@ -428,16 +425,15 @@ class XeroInterface:
                 )
                 if len(credit_notes.credit_notes) == 1:
                     return credit_notes.credit_notes[0]
-                else:
-                    return None
-            else:
-                self.throttle()
-                credit_notes = self.accounting_api.get_credit_notes(
-                    self.tenant_id,
-                    unitdp=self.unitdp,
-                    **kwargs,
-                )
-                return credit_notes.credit_notes
+                return None
+
+            self.throttle()
+            credit_notes = self.accounting_api.get_credit_notes(
+                self.tenant_id,
+                unitdp=self.unitdp,
+                **kwargs,
+            )
+            return credit_notes.credit_notes
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
@@ -534,7 +530,9 @@ class XeroInterface:
         elif credit_note.status == 'AUTHORISED':
             credit_note.status = 'VOIDED'
 
-    # INVOICES
+    # endregion
+
+    # region INVOICES
     def create_invoices(self, invoice_list):
         """Creates one or more invoices.
 
@@ -589,16 +587,15 @@ class XeroInterface:
                 )
                 if len(invoices.invoices) == 1:
                     return invoices.invoices[0]
-                else:
-                    return None
-            else:
-                self.throttle()
-                invoices = self.accounting_api.get_invoices(
-                    self.tenant_id,
-                    unitdp=self.unitdp,
-                    **kwargs,
-                )
-                return invoices.invoices
+                return None
+
+            self.throttle()
+            invoices = self.accounting_api.get_invoices(
+                self.tenant_id,
+                unitdp=self.unitdp,
+                **kwargs,
+            )
+            return invoices.invoices
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
@@ -715,7 +712,9 @@ class XeroInterface:
 
         return history
 
-    # ITEMS
+    # endregion
+
+    # region ITEMS
     def create_items(self, item_list):
         """Creates one or more items.
 
@@ -772,16 +771,15 @@ class XeroInterface:
                 )
                 if len(items.items) == 1:
                     return items.items[0]
-                else:
-                    return None
-            else:
-                self.throttle()
-                items = self.accounting_api.get_items(
-                    self.tenant_id,
-                    unitdp=self.unitdp,
-                    **kwargs
-                )
-                return items.items
+                return None
+
+            self.throttle()
+            items = self.accounting_api.get_items(
+                self.tenant_id,
+                unitdp=self.unitdp,
+                **kwargs
+            )
+            return items.items
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}')
         except NotFoundException:
@@ -868,7 +866,9 @@ class XeroInterface:
 
         return []
 
-    # MANUAL JOURNALS
+    # endregion
+
+    # region MANUAL_JOURNALS
     def create_manual_journals(self, manual_journal_list):
         """Creates one or more manual journals.
 
@@ -923,15 +923,14 @@ class XeroInterface:
                 )
                 if len(manual_journals.manual_journals) == 1:
                     return manual_journals.manual_journals[0]
-                else:
-                    return None
-            else:
-                self.throttle()
-                manual_journals = self.accounting_api.get_manual_journals(
-                    self.tenant_id,
-                    **kwargs,
-                )
-                return manual_journals.manual_journals
+                return None
+
+            self.throttle()
+            manual_journals = self.accounting_api.get_manual_journals(
+                self.tenant_id,
+                **kwargs,
+            )
+            return manual_journals.manual_journals
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
@@ -1028,7 +1027,9 @@ class XeroInterface:
         elif manual_journal.status == 'POSTED':
             manual_journal.status = 'VOIDED'
 
-    # ORGANIZATIONS
+    # endregion
+
+    # region ORGANIZATIONS
     def read_organizations(self):
         """Retrieves a list of organizations.
 
@@ -1050,7 +1051,9 @@ class XeroInterface:
 
         return []
 
-    # PAYMENTS
+    # endregion
+
+    # region PAYMENTS
     def create_payments(self, payment_list):
         """Creates one or more payments.
 
@@ -1103,15 +1106,14 @@ class XeroInterface:
                 )
                 if len(payments.payments) == 1:
                     return payments.payments[0]
-                else:
-                    return None
-            else:
-                self.throttle()
-                payments = self.accounting_api.get_payments(
-                    self.tenant_id,
-                    **kwargs,
-                )
-                return payments.payments
+                return None
+
+            self.throttle()
+            payments = self.accounting_api.get_payments(
+                self.tenant_id,
+                **kwargs,
+            )
+            return payments.payments
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
@@ -1148,7 +1150,7 @@ class XeroInterface:
                 )
                 return payments.payments
 
-            elif payment_list:
+            if payment_list:
                 payment_delete = PaymentDelete(status = "DELETED")
                 payment_list_deleted = []
                 for payment in payment_list:
@@ -1161,29 +1163,30 @@ class XeroInterface:
                     payment_list_deleted.append(payments.payments[0])
                 return payment_list_deleted
 
-            else:
-                payment_delete = PaymentDelete(status="DELETED")
-                payment_list_read = self.read_payments(**kwargs)
-                if not payment_list_read:
-                    return []
+            payment_delete = PaymentDelete(status="DELETED")
+            payment_list_read = self.read_payments(**kwargs)
+            if not payment_list_read:
+                return []
 
-                payment_list_deleted = []
-                for payment in payment_list_read:
-                    self.throttle()
-                    payments = self.accounting_api.delete_payment(
-                        self.tenant_id,
-                        payment_id=payment.payment_id,
-                        payment_delete=payment_delete
-                    )
-                    payment_list_deleted.append(payments.payments[0])
-                return payment_list_deleted
+            payment_list_deleted = []
+            for payment in payment_list_read:
+                self.throttle()
+                payments = self.accounting_api.delete_payment(
+                    self.tenant_id,
+                    payment_id=payment.payment_id,
+                    payment_delete=payment_delete
+                )
+                payment_list_deleted.append(payments.payments[0])
+            return payment_list_deleted
 
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
         return []
 
-    # PURCHASE ORDERS
+    # endregion
+
+    # region PURCHASE_ORDERS
     def create_purchase_orders(self, purchase_order_list):
         """Creates one or more purchase_orders.
 
@@ -1237,9 +1240,9 @@ class XeroInterface:
                 )
                 if len(purchase_orders.purchase_orders) == 1:
                     return purchase_orders.purchase_orders[0]
-                else:
-                    return None
-            elif number:
+                return None
+
+            if number:
                 self.throttle()
                 purchase_orders = self.accounting_api.get_purchase_order_by_number(
                     self.tenant_id,
@@ -1247,15 +1250,14 @@ class XeroInterface:
                 )
                 if len(purchase_orders.purchase_orders) == 1:
                     return purchase_orders.purchase_orders[0]
-                else:
-                    return None
-            else:
-                self.throttle()
-                purchase_orders = self.accounting_api.get_purchase_orders(
-                    self.tenant_id,
-                    **kwargs,
-                )
-                return purchase_orders.purchase_orders
+                return None
+
+            self.throttle()
+            purchase_orders = self.accounting_api.get_purchase_orders(
+                self.tenant_id,
+                **kwargs,
+            )
+            return purchase_orders.purchase_orders
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
@@ -1402,7 +1404,9 @@ class XeroInterface:
         elif purchase_order.status == 'AUTHORISED':
             purchase_order.status = 'DELETED'
 
-    # REPEATING INVOICES
+    # endregion
+
+    # region REPEATING_INVOICES
     def create_repeating_invoices(self, repeating_invoice_list):
         """Creates one or more repeating invoices.
 
@@ -1455,15 +1459,14 @@ class XeroInterface:
                 )
                 if len(repeating_invoices.repeating_invoices) == 1:
                     return repeating_invoices.repeating_invoices[0]
-                else:
-                    return None
-            else:
-                self.throttle()
-                repeating_invoices = self.accounting_api.get_repeating_invoices(
-                    self.tenant_id,
-                    **kwargs
-                )
-                return repeating_invoices.repeating_invoices
+                return None
+
+            self.throttle()
+            repeating_invoices = self.accounting_api.get_repeating_invoices(
+                self.tenant_id,
+                **kwargs
+            )
+            return repeating_invoices.repeating_invoices
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
@@ -1558,3 +1561,39 @@ class XeroInterface:
             repeating_invoice: Xero repeating invoice.
         """
         repeating_invoice.status = 'DELETED'
+
+    # endregion
+
+    # region REPORTS
+    def read_report_balance_sheet(self, **kwargs) -> dict:
+        """Retrieves a balance sheet report with the specified options.
+
+        Scopes:
+            accounting.reports.read
+        
+        Args:
+            date (date): Date of the report.
+            ...
+
+        Returns:
+            (dict) Report object.
+        """
+        report_date = kwargs.pop('date', None)
+
+        try:
+            if report_date:
+                self.throttle()
+                reports = self.accounting_api.get_report_balance_sheet(
+                    self.tenant_id,
+                    date=report_date,
+                    standard_layout=True
+                )
+                if len(reports.reports) == 1:
+                    return reports.reports[0]
+                return None
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}')
+
+        return None
+
+    # endregion
