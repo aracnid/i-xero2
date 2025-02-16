@@ -4,7 +4,7 @@
 # pylint: disable=logging-fstring-interpolation,too-many-lines
 
 from collections import deque
-from datetime import datetime
+from datetime import date, datetime
 import os
 import time
 
@@ -1565,21 +1565,21 @@ class XeroInterface:
     # endregion
 
     # region REPORTS
-    def read_report_balance_sheet(self, **kwargs) -> dict:
+    def read_report_balance_sheet(self, report_date: date, as_dict: bool=False) -> dict:
         """Retrieves a balance sheet report with the specified options.
 
         Scopes:
             accounting.reports.read
         
         Args:
+            report_date (date): Date of the report.
+            as_dict (bool): Return as dictionary or object.
             date (date): Date of the report.
             ...
 
         Returns:
             (dict) Report object.
         """
-        report_date = kwargs.pop('date', None)
-
         try:
             if report_date:
                 self.throttle()
@@ -1588,9 +1588,11 @@ class XeroInterface:
                     date=report_date,
                     standard_layout=True
                 )
-                if len(reports.reports) == 1:
-                    return reports.reports[0]
-                return None
+                report = reports.reports[0]
+                if as_dict:
+                    return report.to_dict()
+                return report
+
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}')
 
