@@ -1574,7 +1574,6 @@ class XeroInterface:
         Args:
             report_date (date): Date of the report.
             as_dict (bool): Return as dictionary or object.
-            date (date): Date of the report.
             ...
 
         Returns:
@@ -1587,6 +1586,37 @@ class XeroInterface:
                     self.tenant_id,
                     date=report_date,
                     standard_layout=True
+                )
+                report = reports.reports[0]
+                if as_dict:
+                    return report.to_dict()
+                return report
+
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}')
+
+        return None
+
+    def read_report_trial_balance(self, report_date: date, as_dict: bool=False) -> dict:
+        """Retrieves a trial balance report with the specified options.
+
+        Scopes:
+            accounting.reports.read
+        
+        Args:
+            report_date (date): Date of the report.
+            as_dict (bool): Return as dictionary or object.
+            ...
+
+        Returns:
+            (dict) Report object.
+        """
+        try:
+            if report_date:
+                self.throttle()
+                reports = self.accounting_api.get_report_trial_balance(
+                    self.tenant_id,
+                    date=report_date
                 )
                 report = reports.reports[0]
                 if as_dict:
