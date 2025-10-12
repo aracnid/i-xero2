@@ -554,7 +554,10 @@ class XeroInterface:
             )
             return invoices.invoices
         except AccountingBadRequestException as err:
-            logger.error(f'Exception: {err}\n')
+            if err.reason == 'A Contact must be specified for this type of transaction':
+                logger.error('Xero invoice creation failed: Missing contact')
+            else:
+                logger.error(f'Exception: {err}\n')
 
         return []
 
