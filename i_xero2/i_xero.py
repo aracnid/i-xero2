@@ -12,6 +12,7 @@ from aracnid_logger import Logger
 from i_mongodb import MongoDBInterface
 from pytz import timezone, utc
 from xero_python.accounting import AccountingApi
+from xero_python.accounting import Contact, Contacts
 from xero_python.accounting import CreditNotes
 from xero_python.accounting import HistoryRecord, HistoryRecords
 from xero_python.accounting import Invoices
@@ -369,6 +370,36 @@ class XeroInterface:
         return []
 
     # endregion
+
+    # region CONTACTS
+    def create_contacts(self, contact_list):
+        """Creates one or more contacts.
+
+        Scopes:
+            accounting.settings
+
+        Args:
+            contact_list: List of contacts to create.
+
+        Returns:
+            List of created Contact objects.
+        """
+        # idempotency_key = 'KEY_VALUE'
+
+        try:
+            self.throttle()
+            contacts = self.accounting_api.create_contacts(
+                self.tenant_id,
+                contacts=Contacts(
+                    contacts=contact_list
+                ),
+                summarize_errors='True'
+            )
+            return contacts.contacts
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
+
+        return []
 
     # region CREDIT_NOTES
     def create_credit_notes(self, credit_note_list):
