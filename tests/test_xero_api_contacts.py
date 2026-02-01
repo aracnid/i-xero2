@@ -49,27 +49,27 @@ def test_read_contacts(xero):
     # assert len(item_list) > 1
 
 def test_update_contacts(xero):
-    assert False, 'not implemented'
+    email_address_original = 'hulk@avengers.com'
+    email_address_updated = 'hulk2@avengers.com'
 
-    # # create new item
-    # item = Item(
-    #     code="abcd",
-    #     name="HelloWorld",
-    #     description="Foobar",
-    # )
-    # item_list_created = xero.create_items(
-    #     item_list=[item]
-    # )
-    # item = item_list_created[0]
+    # create new contact
+    contact = Contact(
+        name = "Bruce Banner",
+        email_address = email_address_original,
+    )
+    contact_list = xero.update_contacts(
+        contact_list=[contact]
+    )
+    contact = contact_list[0]
 
-    # # update journal
-    # item.name = 'Foo'
-    # item_list_updated = xero.update_items(
-    #     item_list=[item]
-    # )
+    # update journal
+    contact.email_address = email_address_updated
+    contact_list_updated = xero.update_contacts(
+        contact_list=[contact]
+    )
 
-    # # verify
-    # assert item_list_updated[0].name == item.name
+    # verify
+    assert contact_list_updated[0].email_address == email_address_updated
 
 def test_delete_contacts_by_id(xero):
     assert False, 'not implemented'

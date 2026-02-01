@@ -400,6 +400,34 @@ class XeroInterface:
             logger.error(f'Exception: {err}\n')
 
         return []
+    
+    def update_contacts(self, contact_list: list[Contact]) -> list[Contact]:
+        """Updates one or more contacts.
+
+        (Upsert) If a contact does not exist it will be created.
+
+        Scopes:
+            accounting.settings
+
+        Args:
+            contact_list: List of contacts to update.
+
+        Returns:
+            List of updated Contact objects.
+        """
+        try:
+            self.throttle()
+            contacts = self.accounting_api.update_or_create_contacts(
+                self.tenant_id,
+                contacts=Contacts(
+                    contacts=contact_list
+                )
+            )
+            return contacts.contacts
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
+
+        return []
 
     # region CREDIT_NOTES
     def create_credit_notes(self, credit_note_list):
