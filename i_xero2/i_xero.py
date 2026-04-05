@@ -274,14 +274,6 @@ class XeroInterface:
         # logger.debug(f'[refresh] expires: {new_token["expires_at"]}')
         logger.debug('this function is not setup')
 
-    def get_scopes(self):
-        """Returns the Xero scopes as a list.
-        """
-        scopes = os.environ.get('XERO_SCOPES')
-        scope_list = scopes.split(',')
-
-        return scope_list
-
     @staticmethod
     def xero_date_str(date_or_datetime):
         """Converts a date or datetime object into a DateTime string.
@@ -428,6 +420,8 @@ class XeroInterface:
             logger.error(f'Exception: {err}\n')
 
         return []
+
+    # endregion
 
     # region CREDIT_NOTES
     def create_credit_notes(self, credit_note_list):

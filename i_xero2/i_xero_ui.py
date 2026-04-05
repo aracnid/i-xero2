@@ -1,6 +1,9 @@
 """Class module to interface with Xero.
 """
+# pyright: reportAttributeAccessIssue=false,reportOptionalMemberAccess=false
+# pyright: reportOptionalIterable=false
 from functools import wraps
+import os
 
 from aracnid_logger import Logger
 from flask_oauthlib.contrib.client import OAuth, OAuth2Application
@@ -68,19 +71,21 @@ class XeroInterfaceUI:
             OAuth application
         """
         # TODO fetch config from https://identity.xero.com/.well-known/openid-configuration #1
+
+        # get scopes
+        self.scope_list = self.get_scopes()
+
         oauth = OAuth(flask_app)
         self.oauth_app = oauth.remote_app(
-            name="xero",
-            version="2",
-            client_id=flask_app.config["CLIENT_ID"],
-            client_secret=flask_app.config["CLIENT_SECRET"],
-            endpoint_url="https://api.xero.com/",
-            authorization_url="https://login.xero.com/identity/connect/authorize",
-            access_token_url="https://identity.xero.com/connect/token",
-            refresh_token_url="https://identity.xero.com/connect/token",
-            scope="offline_access openid profile email accounting.transactions "
-            "accounting.reports.read accounting.journals.read accounting.settings "
-            "accounting.contacts accounting.attachments assets projects",
+            name='xero',
+            version='2',
+            client_id=flask_app.config['CLIENT_ID'],
+            client_secret=flask_app.config['CLIENT_SECRET'],
+            endpoint_url='https://api.xero.com/',
+            authorization_url='https://login.xero.com/identity/connect/authorize',
+            access_token_url='https://identity.xero.com/connect/token',
+            refresh_token_url='https://identity.xero.com/connect/token',
+            scope=' '.join(self.scope_list),
         )  # type: OAuth2Application
 
         # register token getter/saver
@@ -237,4 +242,11 @@ class XeroInterfaceUI:
         new_token = self.client.refresh_oauth2_token()
 
         return new_token
-        
+
+    def get_scopes(self):
+        """Returns the Xero scopes as a list.
+        """
+        scopes = os.environ.get('XERO_SCOPES')
+        scope_list = scopes.split(',')
+
+        return scope_list
