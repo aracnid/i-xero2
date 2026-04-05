@@ -76,7 +76,6 @@ class XeroInterface:
         # create credentials
         self.client_id = os.environ.get('XERO_CLIENT_ID')
         self.client_secret = os.environ.get('XERO_CLIENT_SECRET')
-        self.scope_list = self.get_scopes()
 
         # set the xero client
         self.set_client()
@@ -117,12 +116,6 @@ class XeroInterface:
 
         if token:
             logger.debug(f'[setup] expires: {token["expires_at"]}')
-            # self.credentials = OAuth2Credentials(
-            #     client_id=self.client_id,
-            #     client_secret=self.client_secret,
-            #     scope=self.scope_list,
-            #     token=token
-            # )
             self.client = ApiClient(
                 Configuration(
                     debug=False,
