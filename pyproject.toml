@@ -17,7 +17,7 @@ flask-oauthlib = "^0.9"
 flask-session = "^0.4"
 i-mongodb = "^2.0"
 pytz = "^2022.1"
-xero-python = "^1.16"
+xero-python = "^14.0"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.0"
@@ -29,7 +29,6 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-#addopts = "-p no:warnings --cov-report xml:tests/cov.xml --cov=i_xero2 tests/"
 addopts = "-p no:warnings"
 log_cli = true
 log_cli_level = "DEBUG"
