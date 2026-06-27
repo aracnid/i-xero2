@@ -1,7 +1,11 @@
 """Class module to interface with Xero.
 """
 # import modules
-# pylint: disable=logging-fstring-interpolation,too-many-lines
+# pylint: disable=logging-fstring-interpolation
+# pylint: disable=too-many-lines
+# pyright: reportArgumentType=true
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportOptionalMemberAccess=false
 
 from collections import deque
 from datetime import date, datetime
@@ -607,6 +611,36 @@ class XeroInterface:
 
         return []
 
+    def read_invoice(self, invoice_id: str):
+        """Retrieves a single invoice.
+
+        Scopes:
+            accounting.transactions
+            accounting.transactions.read
+
+        Args:
+            invoice_id: Invoice identifier.
+
+        Returns:
+            Single invoice.
+        """
+        try:
+            if invoice_id:
+                self.throttle()
+                response = self.accounting_api.get_invoice(
+                    self.tenant_id,
+                    invoice_id=invoice_id,
+                    unitdp=self.unitdp
+                )
+                if len(response.invoices) == 1:
+                    return response.invoices[0]
+                return None
+
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
+
+        return None
+
     def read_invoices(self, **kwargs):
         """Retrieves one or more invoices.
 
@@ -629,26 +663,55 @@ class XeroInterface:
         try:
             if invoice_id:
                 self.throttle()
-                invoices = self.accounting_api.get_invoice(
+                response = self.accounting_api.get_invoice(
                     self.tenant_id,
                     invoice_id=invoice_id,
                     unitdp=self.unitdp
                 )
-                if len(invoices.invoices) == 1:
-                    return invoices.invoices[0]
+                if len(response.invoices) == 1:
+                    return response.invoices[0]
                 return None
 
             self.throttle()
-            invoices = self.accounting_api.get_invoices(
+            response = self.accounting_api.get_invoices(
                 self.tenant_id,
                 unitdp=self.unitdp,
                 **kwargs,
             )
-            return invoices.invoices
+            return response.invoices
         except AccountingBadRequestException as err:
             logger.error(f'Exception: {err}\n')
 
         return []
+
+    def read_invoice_pdf(self, invoice_id: str):
+        """Retrieves the PDF of a single invoice.
+
+        Scopes:
+            accounting.transactions
+            accounting.transactions.read
+
+        Args:
+            invoice_id: Invoice identifier.
+
+        Returns:
+            Bytes of the PDF file.
+        """
+        try:
+            if invoice_id:
+                self.throttle()
+                invoice_path = self.accounting_api.get_invoice_as_pdf(
+                    self.tenant_id,
+                    invoice_id=invoice_id
+                )
+                with open(invoice_path, 'rb') as invoice_file:
+                    invoice_pdf = invoice_file.read()
+                    return invoice_pdf
+
+        except AccountingBadRequestException as err:
+            logger.error(f'Exception: {err}\n')
+
+        return None
 
     def update_invoices(self, invoice_list):
         """Updates one or more invoices.

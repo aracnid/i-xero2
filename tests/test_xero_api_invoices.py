@@ -53,7 +53,20 @@ def test_create_invoices(xero):
     assert len(invoice_list_created) == 1
 
 def test_read_invoice(xero):
-    """Tests reading a single invoice.
+    """Tests reading a single invoice from the read_invoice method.
+
+    Args:
+        xero (XeroInterface): Fixture that represents a xero interface.
+    """
+    invoice_number = 'INV-0024'
+    invoice_id = '2bef3661-7cd8-496c-a31d-072a4dba8a79'
+    invoice = xero.read_invoice(invoice_id)
+
+    assert invoice.invoice_id == invoice_id
+    assert invoice.invoice_number == invoice_number
+
+def test_read_invoice_from_invoices(xero):
+    """Tests reading a single invoice from the read_invoices method.
 
     Args:
         xero (XeroInterface): Fixture that represents a xero interface.
@@ -64,6 +77,19 @@ def test_read_invoice(xero):
 
     assert invoice.invoice_id == invoice_id
     assert invoice.invoice_number == invoice_number
+
+def test_read_invoice_pdf(xero):
+    """Tests reading a single invoice PDF.
+
+    Args:
+        xero (XeroInterface): Fixture that represents a xero interface.
+    """
+    invoice_id = '2bef3661-7cd8-496c-a31d-072a4dba8a79'
+    invoice_pdf = xero.read_invoice_pdf(invoice_id)
+
+    assert invoice_pdf
+    assert isinstance(invoice_pdf, bytes)
+    assert len(invoice_pdf) > 0
 
 def test_read_invoices(xero):
     """Tests reading invoices.
