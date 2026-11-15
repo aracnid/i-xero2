@@ -11,6 +11,7 @@ These instructions will get you a copy of the project up and running on your loc
 This package supports the following version of Python. It probably supports older versions, but they have not been tested.
 
 - Python 3.10 or later
+- `xero-python>=15.4,<16` (locked to 15.4.0)
 
 ### Installing
 
@@ -43,6 +44,14 @@ Before running the tests, you need to authorize the app with Xero and save the t
     ```bash
     $ python -m pytest
     ```
+
+### SDK 15.4.0 verification
+
+Offline verification on Python 3.10 passed the package version test and five
+mocked HTTP invoice checks covering reads, lookups, creates and updates, including
+four-decimal unit prices. All 39 referenced Accounting API methods remain
+available. Lockfile validation, installed dependency checks, and source and wheel
+builds passed. Live Xero and MongoDB integration tests remain pending.
 
 ## Usage
 

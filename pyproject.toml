@@ -17,7 +17,7 @@ flask-oauthlib = "^0.9"
 flask-session = "^0.4"
 i-mongodb = "^2.0"
 pytz = "^2022.1"
-xero-python = "^14.0"
+xero-python = ">=15.4,<16"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.0"
